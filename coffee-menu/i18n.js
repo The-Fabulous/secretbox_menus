@@ -70,7 +70,7 @@ const I18N = (() => {
       repeat: 'Повторить', order_no: 'Заказ № {n}', order_placed: 'Заказ № {n} оформлен',
       repeat_added: 'Добавлено в заказ: {n}', repeat_missing: 'Некоторых позиций больше нет в меню',
       // проверка Gemma — только для персонала (?staff=1), поэтому только по-русски
-      api_title: 'Проверка API Gemma', api_chip: 'API',
+      api_title: 'Проверка API Gemma', api_chip: 'Проверить API',
       api_hint: 'Сайт спрашивает сервер проверки Secretbox, а тот — Gemma. Ключ хранится только у сервера проверки и сюда не передаётся. Результат обновляется не чаще раза в минуту.',
       api_not_configured: 'Сервер проверки не настроен: разверните gemma-health (инструкция в gemma-health/README.md) и впишите его адрес в data/config.json.',
       api_check: 'Проверить', api_checking: 'Проверяем…',

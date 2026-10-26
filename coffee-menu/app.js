@@ -6,7 +6,7 @@
   // Кнопка «Проверить API» (видна только персоналу: ?staff=1) спрашивает не Gemma напрямую,
   // а сервер-посредник (gemma-health/worker.js, адрес — в data/config.json). Ключ Gemma хранится
   // только у посредника — в браузер, на сайт и в репозиторий он не попадает.
-  let CONFIG = { gemmaHealthUrl: null };
+  let CONFIG = { gemmaHealthUrl: null, gemmaUrl: 'https://llm.alem.ai/v1' };
   const API_TIMEOUT_SEC = 25;
 
   // Заполняется после загрузки данных (см. init)
@@ -728,29 +728,38 @@
 
   function apiView() {
     const a = state.api;
-    const configured = Boolean(CONFIG.gemmaHealthUrl);
+    const full = Boolean(CONFIG.gemmaHealthUrl);
     return `
       <div class="om">
         <h2 class="om-title">${T('api_title')}</h2>
-        <p class="hint">${T(configured ? 'api_hint' : 'api_not_configured')}</p>
+        <p class="hint">${T(full ? 'api_hint' : 'api_conn_hint', { host: esc(new URL(CONFIG.gemmaUrl).host) })}</p>
 
-        ${configured ? `
-          <div class="api-status ${a.status}">
-            <span class="api-dot ${a.status}"></span>
-            <div>
-              <b>${esc(a.status === 'checking' ? T('api_checking') : a.message || T('api_never'))}</b>
-              ${a.at ? `<small>${esc(T('api_last', { t: I18N.formatDateTime(new Date(a.at)) }))}${a.model ? ` · ${esc(a.model)}` : ''}</small>` : ''}
-            </div>
+        <div class="api-status ${a.status}">
+          <span class="api-dot ${a.status}"></span>
+          <div>
+            <b>${esc(a.status === 'checking' ? T('api_checking') : a.message || T('api_never'))}</b>
+            ${a.at ? `<small>${esc(T('api_last', { t: I18N.formatDateTime(new Date(a.at)) }))}${a.model ? ` · ${esc(a.model)}` : ''}</small>` : ''}
           </div>
+        </div>
 
-          <div class="pay-wrap">
-            <button class="btn-primary" type="button" data-api-run ${a.status === 'checking' ? 'disabled' : ''}>${T('api_check')}</button>
-          </div>` : ''}
+        <div class="pay-wrap">
+          <button class="btn-primary" type="button" data-api-run ${a.status === 'checking' ? 'disabled' : ''}>${T('api_check')}</button>
+        </div>
       </div>`;
   }
 
-  // Спрашиваем посредника; он сам обращается к Gemma с ключом и отвечает только «работает / нет»
-  async function checkApi() {
+  // Без посредника: есть ли связь с сервером Gemma. Ключ не нужен — сервер отвечает и без него
+  // («нет доступа» = сервер на связи). Модель и ключ так не проверить — для этого посредник.
+  async function checkConnection(signal) {
+    const started = performance.now();
+    const res = await fetch(`${CONFIG.gemmaUrl}/models`, { signal, cache: 'no-store' });
+    const seconds = ((performance.now() - started) / 1000).toFixed(1).replace('.', ',');
+    if (res.status >= 500) return { ok: false, message: T('api_server', { code: res.status }) };
+    return { ok: true, message: T('api_conn_ok', { s: seconds }) };
+  }
+
+  // Полная проверка через посредника: он сам обращается к Gemma с ключом и отвечает только «работает / нет»
+  async function checkApi(silent = false) {
     state.api = { ...state.api, status: 'checking' };
     refreshHeader();
     renderModal(false);
@@ -761,22 +770,27 @@
     let message;
     let model = null;
     try {
-      const res = await fetch(CONFIG.gemmaHealthUrl, { signal: ctrl.signal, cache: 'no-store' });
-      if (!res.ok) throw Object.assign(new Error('health'), { proxy: res.status });
-      const h = await res.json();
-      model = typeof h.model === 'string' ? h.model : null;
-      const seconds = (Number(h.ms) / 1000 || 0).toFixed(1).replace('.', ',');
-      if (h.ok) { ok = true; message = T('api_ok', { s: seconds }); }
-      else if (h.error === 'no_key') message = T('api_proxy_no_key');
-      else if (h.error === 'timeout') message = T('api_timeout', { s: 20 });
-      else if (h.error === 'network') message = T('api_offline');
-      else if (h.status === 401 || h.status === 403) message = T('api_bad_key', { code: h.status });
-      else if (h.status === 404) message = T('api_no_model', { m: model || 'gemma' });
-      else if (h.status === 429) message = T('api_limit');
-      else message = T('api_server', { code: h.status });
+      if (!CONFIG.gemmaHealthUrl) {
+        ({ ok, message } = await checkConnection(ctrl.signal));
+      } else {
+        const res = await fetch(CONFIG.gemmaHealthUrl, { signal: ctrl.signal, cache: 'no-store' });
+        if (!res.ok) throw Object.assign(new Error('health'), { proxy: res.status });
+        const h = await res.json();
+        model = typeof h.model === 'string' ? h.model : null;
+        const seconds = (Number(h.ms) / 1000 || 0).toFixed(1).replace('.', ',');
+        if (h.ok) { ok = true; message = T('api_ok', { s: seconds }); }
+        else if (h.error === 'no_key') message = T('api_proxy_no_key');
+        else if (h.error === 'timeout') message = T('api_timeout', { s: 20 });
+        else if (h.error === 'network') message = T('api_offline');
+        else if (h.status === 401 || h.status === 403) message = T('api_bad_key', { code: h.status });
+        else if (h.status === 404) message = T('api_no_model', { m: model || 'gemma' });
+        else if (h.status === 429) message = T('api_limit');
+        else message = T('api_server', { code: h.status });
+      }
     } catch (e) {
       message = e.name === 'AbortError' ? T('api_timeout', { s: API_TIMEOUT_SEC })
-        : e.proxy ? T('api_proxy_error', { code: e.proxy }) : T('api_proxy_offline');
+        : e.proxy ? T('api_proxy_error', { code: e.proxy })
+        : CONFIG.gemmaHealthUrl ? T('api_proxy_offline') : T('api_offline');
     } finally {
       clearTimeout(timer);
     }
@@ -784,7 +798,13 @@
     state.api = { status: ok ? 'ok' : 'fail', message, model, at: Date.now() };
     refreshHeader();
     if (topModal() && topModal().type === 'api') renderModal(false);
-    else toast(message);
+    else if (!silent) toast(message);
+  }
+
+  // в режиме персонала индикатор проверяет связь сам при открытии страницы
+  let autoChecked = false;
+  function autoCheckApi() {
+    if (state.staff && !autoChecked) { autoChecked = true; checkApi(true); }
   }
 
   // ───────── окно заказа
@@ -1233,6 +1253,7 @@
     const menus = await Promise.allSettled(cafes.map(c => API.getMenu(c, STYLES)));
     state.picker = { cafes, menus };
     showPicker();
+    autoCheckApi();
   }
 
   function showPicker() {
@@ -1318,6 +1339,7 @@
     }
 
     renderMenuPage();
+    autoCheckApi();
   }
 
   async function init() {

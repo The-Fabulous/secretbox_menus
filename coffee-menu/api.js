@@ -268,13 +268,15 @@ const API = (() => {
 
   // ───────── настройки сайта (data/config.json). Нет файла — значения по умолчанию
 
+  const DEFAULT_GEMMA_URL = 'https://llm.alem.ai/v1';
+
   async function getConfig() {
     try {
       const raw = (await getJSON('data/config.json')) || {};
-      const url = str(raw.gemma_health_url);
-      return { gemmaHealthUrl: url && /^https:\/\//.test(url) ? url : null };
+      const https = v => (str(v) && /^https:\/\//.test(v) ? String(v).replace(/\/+$/, '') : null);
+      return { gemmaHealthUrl: https(raw.gemma_health_url), gemmaUrl: https(raw.gemma_url) || DEFAULT_GEMMA_URL };
     } catch {
-      return { gemmaHealthUrl: null };
+      return { gemmaHealthUrl: null, gemmaUrl: DEFAULT_GEMMA_URL };
     }
   }
 

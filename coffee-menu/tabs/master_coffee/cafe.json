@@ -1,13 +1,13 @@
 {
   "id": "master_coffee",
-  "name": "Master Coffee",
-  "logo": null,
-  "address": null,
-  "city": null,
-  "hours": null,
   "currency": "KZT",
   "theme": {
     "accent": null
   },
+  "name": "Master Coffee",
+  "logo": "logo.png",
+  "address": null,
+  "city": null,
+  "hours": null,
   "source": "photos"
 }

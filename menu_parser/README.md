@@ -2,7 +2,7 @@
 
 ## Через сайт GitHub — без установки чего-либо
 
-1. Откройте на GitHub папку `menu_parser/photos` → **Add file → Upload files**.
+1. Откройте на GitHub папку `venues` → **Add file → Upload files**.
 2. Перетащите **папку** с фото меню, названную латиницей — это будет id кофейни, например `kofe_house` (внутри — jpg/png страниц меню). Можно положить туда и `cafe.json`:
    ```json
    { "name": "Kofe House", "city": "Алматы", "address": "ул. Абая, 1", "hours": "до 22:00" }
@@ -29,10 +29,10 @@ pip install -r requirements.txt
 
 ### Запуск
 
-1. Положите фото страниц меню в отдельную папку, например `photos/ayu/` (jpg, png, webp).
+1. Положите фото страниц меню в отдельную папку, например `../venues/ayu_menu/` (jpg, png, webp).
 2. Запустите:
    ```powershell
-   python driver.py photos/ayu --cafe-id ayu_menu
+   python driver.py ../venues/ayu_menu
    ```
 3. Результат — `output/ayu_menu.json`. Сырые ответы модели по каждому фото — в `output/raw/ayu_menu/` (если что-то распознано не так, смотрите туда).
 4. Проверьте цены и названия и скопируйте файл в `coffee-menu/cafes/`. Если это новая кофейня — добавьте её в `coffee-menu/data/cafes.json`.

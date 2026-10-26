@@ -1,17 +1,17 @@
 name: Меню из фото
 
-# Фото меню загружаются в menu_parser/photos/<id кофейни>/ — задача распознаёт их через Gemma,
+# Конфиг и фото меню загружаются в venues/<id кофейни>/ — задача распознаёт их через Gemma,
 # записывает coffee-menu/cafes/<id>.json, добавляет кофейню на сайт и публикует его.
 # Ключ Gemma — секрет репозитория OPENAI_API_KEY (Settings → Secrets and variables → Actions).
 
 on:
   push:
     branches: [main]
-    paths: ['menu_parser/photos/**']
+    paths: ['venues/**', '!venues/**/*.md', '!venues/**/.gitkeep']
   workflow_dispatch:
     inputs:
       cafe_id:
-        description: 'id кофейни — имя папки в menu_parser/photos'
+        description: 'id кофейни — имя папки в venues'
         required: true
 
 permissions:
@@ -51,8 +51,8 @@ jobs:
           else
             base="$BEFORE"
             git cat-file -e "$base" 2>/dev/null || base="HEAD~1"
-            # только папки (menu_parser/photos/<кофейня>/<файл>), в которых что-то изменилось
-            list=$(git diff --name-only "$base" HEAD -- menu_parser/photos | awk -F/ 'NF>=4 {print $3}' | sort -u | tr '\n' ' ')
+            # Только файлы внутри venues/<кофейня>/; документация не запускает распознавание.
+            list=$(git diff --name-only "$base" HEAD -- venues | awk -F/ 'NF>=3 && $NF !~ /\.md$/ && $NF != ".gitkeep" {print $2}' | sort -u | tr '\n' ' ')
           fi
           echo "Кофейни: ${list:-нет}"
           echo "list=$list" >> "$GITHUB_OUTPUT"
@@ -64,9 +64,9 @@ jobs:
         run: |
           status=0
           for cafe in $LIST; do
-            [ -d "menu_parser/photos/$cafe" ] || continue   # папку удалили — нечего распознавать
+            [ -d "venues/$cafe" ] || continue   # папку удалили — нечего распознавать
             echo "::group::$cafe"
-            python menu_parser/driver.py "menu_parser/photos/$cafe" --cafe-id "$cafe" --publish || status=1
+            python menu_parser/driver.py "venues/$cafe" --cafe-id "$cafe" --publish || status=1
             echo "::endgroup::"
           done
           exit $status

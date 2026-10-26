@@ -7,8 +7,8 @@ id — латиницей, пути к фото — pictures/items/<кофейн
 
 Запуск (из папки menu_parser):
   pip install -r requirements.txt
-  python driver.py photos/ayu --cafe-id ayu_menu
-  python driver.py photos/ayu --cafe-id ayu_menu --out ../coffee-menu/cafes/ayu_menu.json
+  python driver.py ../venues/ayu_menu
+  python driver.py ../venues/ayu_menu --out ../coffee-menu/cafes/ayu_menu.json
 
 Ключ API — в файле .env рядом со скриптом (OPENAI_API_KEY=...).
 """
@@ -545,7 +545,7 @@ def publish(menu, cafe_id, info):
 
 def main():
     parser = argparse.ArgumentParser(description='Фото меню → JSON для сайта (через Gemma)')
-    parser.add_argument('photos', nargs='?', default='photos', help='папка с фото меню (по умолчанию photos)')
+    parser.add_argument('photos', help='папка заведения с cafe.json и скриншотами, например venues/dodo_pizza')
     parser.add_argument('--cafe-id', help='id кофейни латиницей, например ayu_menu (по умолчанию — имя папки)')
     parser.add_argument('--out', help='куда сохранить JSON (по умолчанию output/<cafe-id>.json)')
     parser.add_argument('--max-width', type=int, default=1600,

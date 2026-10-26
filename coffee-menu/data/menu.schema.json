@@ -10,7 +10,8 @@
         "type": "object",
         "required": ["id", "name"],
         "properties": {
-          "id":    { "type": "string", "description": "coffee, tea, cocoa, cold_drinks, pastry, desserts, breakfast, snacks, hot_meals, combo — цвета и рекомендации берутся из data/categories.json" },
+          "id":    { "type": "string", "description": "id раздела латиницей; если это coffee, tea, cocoa, cold_drinks, pastry, desserts, breakfast, snacks, hot_meals, combo — цвета и рекомендации берутся из data/categories.json" },
+          "style": { "type": ["string", "null"], "description": "Стиль из data/categories.json (coffee, tea…) для раздела со своим id — например, «чёрный кофе» (id chernyy_kofe) со стилем coffee" },
           "name":  { "type": "string" },
           "icon":  { "type": ["string", "null"], "description": "Эмодзи раздела; показывается, пока у позиции нет фото" },
           "order": { "type": ["number", "null"], "description": "Порядок в ленте разделов" },

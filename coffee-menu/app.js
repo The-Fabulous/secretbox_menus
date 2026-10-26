@@ -549,7 +549,7 @@
     // стабильное «случайное» перемешивание, чтобы у каждой позиции был свой набор
     const hash = s => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
     return MENU.items
-      .filter(i => cats.includes(i.cat) && i.id !== item.id)
+      .filter(i => (cats.includes(i.cat) || cats.includes(i.catStyle)) && i.id !== item.id)
       .sort((a, b) => hash(item.id + a.id) - hash(item.id + b.id))
       .slice(0, 8);
   }

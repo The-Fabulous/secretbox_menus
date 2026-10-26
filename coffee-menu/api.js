@@ -144,11 +144,13 @@ const API = (() => {
 
   // ───────── меню кофейни
 
+  // Раздел кофейни (как в её меню) + общий стиль из categories.json: по style, а если его нет — по id
   function normalizeCategory(raw, styles, index) {
-    const style = styles[raw.id] || styles.other;
+    const style = styles[raw.style] || styles[raw.id] || styles.other;
     return {
       ...style,
       id: String(raw.id),
+      styleId: style.id,
       name: str(raw.name) || style.name,
       emoji: str(raw.icon) || style.emoji,
       order: num(raw.order) ?? 1000 + index,
@@ -237,6 +239,7 @@ const API = (() => {
     return {
       id,
       cat: cat.id,
+      catStyle: cat.styleId,
       name: String(raw.name),
       desc: str(raw.description),
       image: str(raw.image_url),
@@ -272,7 +275,7 @@ const API = (() => {
     items.forEach(item => {
       item.mods = item.modIds
         ? groups.filter(g => item.modIds.includes(g.id))
-        : groups.filter(g => g.appliesTo.includes(item.cat));
+        : groups.filter(g => g.appliesTo.includes(item.cat) || g.appliesTo.includes(item.catStyle));
       delete item.modIds;
     });
 

@@ -116,7 +116,8 @@ def ask_photos(client, model, data_url):
 
 
 CARD_SIZE = 600      # фото позиции на сайте — квадрат CARD_SIZE×CARD_SIZE
-CARD_MARGIN = 0.07   # поле вокруг предмета, доля стороны
+CARD_MARGIN = 0.08   # поле вокруг предмета, доля стороны
+MAX_UPSCALE = 2.0    # во сколько раз можно увеличить фото со скриншота: сильнее — мыло
 
 
 def _content_mask(region):
@@ -130,21 +131,7 @@ def _content_mask(region):
     edges = np.zeros(gray.shape, dtype=bool)
     edges[:, 1:] |= np.abs(np.diff(gray, axis=1)) > 24
     edges[1:, :] |= np.abs(np.diff(gray, axis=0)) > 24
-    return color | edges, bg
-
-
-def _span_profile(mask):
-    """Для каждой строки — доля ширины от первого до последнего пикселя содержимого.
-    У белой пачки закрашены только края, но размах — во всю ширину, поэтому пачка не теряется.
-    Одиночные выбросы по краям (шум JPEG) не учитываются."""
-    import numpy as np
-    w = mask.shape[1]
-    out = np.zeros(mask.shape[0])
-    for y, row in enumerate(mask):
-        idx = np.flatnonzero(row)
-        if len(idx) >= 3:
-            out[y] = (idx[-2] - idx[1] + 1) / w
-    return out
+    return color | edges
 
 
 def is_faded(img):
@@ -162,44 +149,51 @@ def is_faded(img):
     return mid < 0.06 or (mid < 0.13 and lum[obj].mean() > 195 and sat[obj].mean() < 0.12)
 
 
-def to_card(img):
-    """Квадратная плашка CARD_SIZE×CARD_SIZE: предмет по центру с полями, фон дополнен цветом фона фото.
-    Карточка на сайте квадратная — так ничего не обрезается и все позиции выглядят одинаково."""
+def to_card(img, mask):
+    """Квадратная плашка CARD_SIZE×CARD_SIZE: предмет вырезан по контуру и положен на ровный фон
+    цвета фона фото — без прямоугольника исходного кадра и без размытия краёв.
+    По горизонтали по центру — корпус предмета, а не рамка вместе с ручкой кружки:
+    корпус — столбцы, где предмет «высокий», ручка в них не попадает (она тонкая)."""
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageFilter
     a = np.asarray(img.convert('RGB'))
-    border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
-    bg = tuple(int(v) for v in np.median(border, axis=0))
-    inner = int(CARD_SIZE * (1 - 2 * CARD_MARGIN))
-    scale = inner / max(img.width, img.height)
-    fitted = img.convert('RGB').resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.LANCZOS)
+    bg = tuple(int(v) for v in np.median(a[~mask], axis=0)) if (~mask).any() else (255, 255, 255)
+
+    heights = mask.sum(axis=0)
+    body = np.flatnonzero(heights >= 0.75 * heights.max())
+    center = (body[0] + body[-1] + 1) / 2 if len(body) else img.width / 2
+    # ручка сдвигает корпус от центра рамки не больше чем на 15% ширины; больше — значит, маска
+    # неполная (белое на белом), и надёжнее центр рамки
+    center = min(max(center, 0.35 * img.width), 0.65 * img.width)
+    half = max(center, img.width - center)  # ширина от центра корпуса до дальнего края (ручки)
+
+    inner = CARD_SIZE * (1 - 2 * CARD_MARGIN)
+    scale = min(inner / max(2 * half, img.height), MAX_UPSCALE)
+    size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+    fitted = img.convert('RGB').resize(size, Image.LANCZOS)
+    # маска предмета с запасом: вокруг предмета берётся и немного его родного фона (тень, блики),
+    # а дальше — ровный фон плашки; переход в пару пикселей, на ровном фоне его не видно
+    grow = max(3, round(min(size) * 0.025)) * 2 + 1
+    alpha = Image.fromarray(mask.astype('uint8') * 255, 'L').resize(size, Image.LANCZOS)
+    alpha = alpha.filter(ImageFilter.MaxFilter(grow)).filter(ImageFilter.GaussianBlur(2))
+
     card = Image.new('RGB', (CARD_SIZE, CARD_SIZE), bg)
-    # края фото плавно растворяются в фоне плашки: фон у исходного фото редко идеально ровный,
-    # и без этого на квадрате проступал бы прямоугольник исходного кадра
-    fade = max(4, int(min(fitted.size) * 0.06))
-    ramp_x = np.minimum(np.arange(fitted.width), np.arange(fitted.width)[::-1]) / fade
-    ramp_y = np.minimum(np.arange(fitted.height), np.arange(fitted.height)[::-1]) / fade
-    alpha = np.clip(np.minimum.outer(ramp_y, ramp_x), 0, 1)
-    mask = Image.fromarray((alpha * 255).astype('uint8'), 'L')
-    card.paste(fitted, ((CARD_SIZE - fitted.width) // 2, (CARD_SIZE - fitted.height) // 2), mask)
+    card.paste(fitted, (round(CARD_SIZE / 2 - center * scale), round((CARD_SIZE - size[1]) / 2)), alpha)
     return card
 
 
 def crop_photo(tile, box):
     """Вырезает фото позиции по примерной рамке модели и возвращает квадратную плашку для сайта.
-    По горизонтали модель попадает в карточку точно, а по вертикали часто промахивается, поэтому область
-    расширяется в основном вверх-вниз. Фото — самая «тяжёлая» сплошная полоса строк с содержимым:
-    подпись и цена отделены от него полосой чистого фона и в кадр не попадают.
     None — если фото не нашлось (пустая карточка, значок загрузки), это бледная заглушка «Скоро»
     или фото обрезано краем фрагмента. Тогда у позиции будет эмодзи."""
-    img = None
+    found = None
     for candidate in _box_orders(box):
-        img = _locate_photo(tile, candidate)
-        if img is not None:
+        found = _locate_photo(tile, candidate)
+        if found is not None:
             break
-    if img is None or is_faded(img):
+    if found is None or is_faded(found[0]):
         return None
-    return to_card(img)
+    return to_card(*found)
 
 
 def _box_orders(box):
@@ -214,8 +208,12 @@ def _box_orders(box):
 
 
 def _locate_photo(tile, box):
+    """Находит предмет целиком: пиксели, отличные от фона (по цвету или контуру), склеиваются
+    в связные фигуры — кружка вместе с ручкой и блюдцем, пачка вместе с надписями. Берутся фигуры,
+    которые в основном лежат внутри рамки модели: соседние карточки и подпись снизу отсеиваются.
+    Возвращает (фото предмета, маска предмета) или None."""
     import numpy as np
-
+    from scipy import ndimage
     W, H = tile.size
     try:
         x1, y1, x2, y2 = (min(1000.0, max(0.0, float(v))) for v in box)
@@ -225,71 +223,55 @@ def _locate_photo(tile, box):
         return None
     bx1, by1, bx2, by2 = x1 * W / 1000, y1 * H / 1000, x2 * W / 1000, y2 * H / 1000
     bw, bh = bx2 - bx1, by2 - by1
-    ey1, ey2 = int(max(0, by1 - 0.30 * bh)), int(min(H, by2 + 0.30 * bh))
 
-    # если фото упирается в боковой край области — рамка модели была узкой, пробуем шире
-    for expand in (0.04, 0.30, 0.80):
-        ex1, ex2 = int(max(0, bx1 - expand * bw)), int(min(W, bx2 + expand * bw))
+    # рамка модели бывает тесной: если предмет упёрся в край области — расширяем и ищем снова
+    for expand in (0.35, 0.8):
+        ex1, ey1 = int(max(0, bx1 - expand * bw)), int(max(0, by1 - expand * bh))
+        ex2, ey2 = int(min(W, bx2 + expand * bw)), int(min(H, by2 + expand * bh))
         region = np.asarray(tile.crop((ex1, ey1, ex2, ey2)), dtype=np.int16)
         if region.shape[0] < 60 or region.shape[1] < 60:
             return None
 
-        mask, _ = _content_mask(region)
-        # строки считаем только в колонках рамки модели — соседние карточки не мешают
-        core = mask[:, int(bx1 - ex1):max(int(bx1 - ex1) + 1, int(bx2 - ex1))]
-        rows = _span_profile(core)
-        if rows.max() < 0.25:
-            return None                                   # почти пусто — значок загрузки или пустая карточка
-        # фото от подписи и цены отделяет полоса чистого фона
-        runs = _runs(rows, 0.15, max_gap=6)
-        if not runs:
+        mask = _content_mask(region)
+        labels, count = ndimage.label(ndimage.binary_dilation(mask, iterations=4))
+        if not count:
             return None
-        r0, r1 = max(runs, key=lambda r: rows[r[0]:r[1]].sum())  # самая «тяжёлая» полоса — фото
-        if r1 - r0 < 50:
+        ids = np.arange(1, count + 1)
+        total = ndimage.sum(mask, labels, ids)
+        inside = np.zeros(mask.shape, dtype=bool)
+        inside[int(by1 - ey1):int(by2 - ey1), int(bx1 - ex1):int(bx2 - ex1)] = True
+        within = ndimage.sum(mask & inside, labels, ids)
+        keep = ids[(within >= 0.5 * total) & (total >= 0.002 * bw * bh)]
+        if not len(keep):
             return None
-        # фото упирается в верх или низ фрагмента — оно обрезано, целиком будет на соседнем
-        if (r0 == 0 and ey1 == 0) or (r1 >= region.shape[0] - 1 and ey2 == H):
+        # подпись под фото («Твист с… 790₸») — отдельные фигуры целиком ниже главной: отбрасываем
+        main = keep[np.argmax(total[keep - 1])]
+        rows = ndimage.find_objects(labels)
+        main_bottom = rows[main - 1][0].stop
+        keep = [k for k in keep if rows[k - 1][0].start < main_bottom]
+        obj = np.isin(labels, keep) & mask
+        ys, xs = np.nonzero(obj)
+        r0, r1, c0, c1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        if r1 - r0 < 50 or c1 - c0 < 50:
             return None
 
-        # по горизонтали — сплошная колонка содержимого, в которой центр рамки модели
-        cols = _span_profile(mask[r0:r1].T)
-        col_runs = _runs(cols, 0.15, max_gap=6)
-        if not col_runs:
-            return None
-        center = (bx1 + bx2) / 2 - ex1
-        c0, c1 = min(col_runs, key=lambda r: 0 if r[0] <= center < r[1] else min(abs(r[0] - center), abs(r[1] - center)))
-        if (c0 == 0 and ex1 > 0) or (c1 >= region.shape[1] and ex2 < W):
-            continue                                      # обрезано сбоку — пробуем область шире
-        if c1 - c0 < 50:
-            return None
-        # строки уточняем по найденной колонке — без соседей сверху и снизу
-        rows2 = _span_profile(mask[:, c0:c1])
-        runs2 = [r for r in _runs(rows2, 0.15, max_gap=6) if r[0] < r1 and r[1] > r0]
-        if runs2:
-            r0, r1 = min(r[0] for r in runs2), max(r[1] for r in runs2)
-        # под фото должно поместиться название: если фото у нижнего края фрагмента, подпись обрезана
-        # и модель могла приписать фото чужое название — берём это фото с соседнего фрагмента
+        cut = ((r0 <= 1 and ey1 == 0) or (r1 >= region.shape[0] - 1 and ey2 == H)
+               or (c0 <= 1 and ex1 == 0) or (c1 >= region.shape[1] - 1 and ex2 == W))
+        if cut:
+            return None  # предмет обрезан краем фрагмента — возьмём с соседнего, где он целиком
+        if r0 <= 1 or c0 <= 1 or r1 >= region.shape[0] - 1 or c1 >= region.shape[1] - 1:
+            continue     # упёрся в край области — расширяем
         if H - (ey1 + r1) < max(40, 0.3 * (r1 - r0)):
-            return None
-        return tile.crop((ex1 + c0, ey1 + r0, ex1 + c1, ey1 + r1))
-    return None  # и в широкой области фото обрезано сбоку — лучше эмодзи, чем половина фото
+            return None  # под фото нет места для подписи — фото чужой карточки, обрезанной снизу
 
-
-def _runs(values, threshold, max_gap):
-    """Сплошные отрезки, где values > threshold (разрывы до max_gap склеиваются): [(начало, конец)]."""
-    runs, start, gap = [], None, 0
-    for i, v in enumerate(values):
-        if v > threshold:
-            start = i if start is None else start
-            gap = 0
-        elif start is not None:
-            gap += 1
-            if gap > max_gap:
-                runs.append((start, i - gap + 1))
-                start, gap = None, 0
-    if start is not None:
-        runs.append((start, len(values) - gap))
-    return runs
+        # маска без дыр: белая середина пачки или чашки — тоже предмет. Контур белого на белом
+        # бывает с разрывами — сначала их закрываем (с запасом по краям, чтобы не «съесть» края)
+        k = max(3, round(0.04 * max(r1 - r0, c1 - c0)))
+        padded = np.pad(obj[r0:r1, c0:c1], k)
+        filled = ndimage.binary_fill_holes(ndimage.binary_closing(padded, iterations=k))[k:-k, k:-k]
+        img = tile.crop((ex1 + c0, ey1 + r0, ex1 + c1, ey1 + r1))
+        return img, filled
+    return None
 
 
 # ───────── запрос к модели
@@ -298,7 +280,7 @@ def _runs(values, threshold, max_gap):
 # Скрипт переводит их обратно в формат сайта (expand_keys); ответы с полными ключами тоже понимает.
 KEY_MAPPING = {
     'cats': 'categories', 'mods': 'modifier_groups', 'itms': 'items',
-    'cid': 'category_id', 'n': 'name', 'ic': 'icon', 'desc': 'description', 'ing': 'ingredients',
+    'cid': 'category_id', 'sec': 'section', 'n': 'name', 'ic': 'icon', 'desc': 'description', 'ing': 'ingredients',
     'vars': 'variants', 'm': 'measure', 'p': 'price',
     'nut': 'nutrition', 'cal': 'calories', 'pro': 'proteins', 'fat': 'fats', 'carb': 'carbs',
     't': 'type', 'app': 'applies_to', 'opts': 'options', 'def': 'default',
@@ -325,13 +307,12 @@ def shorten_keys(data):
 
 
 PROMPT_EXAMPLE = {
-    'categories': [{'id': 'coffee', 'name': 'Кофе'}],
     'modifier_groups': [],
     'items': [
-        {'category_id': 'coffee', 'name': 'Капучино', 'icon': '☕', 'description': None, 'ingredients': None,
+        {'section': 'Кофе с молоком', 'category_id': 'coffee', 'name': 'Капучино', 'icon': '☕', 'description': None, 'ingredients': None,
          'variants': [{'measure': '250 мл', 'price': 1190, 'nutrition': None},
                       {'measure': '350 мл', 'price': 1390, 'nutrition': None}]},
-        {'category_id': 'coffee', 'name': 'Раф лавандовый', 'icon': '☕',
+        {'section': 'Авторские напитки', 'category_id': 'coffee', 'name': 'Раф лавандовый', 'icon': '☕',
          'description': 'Эспрессо, сливки и лавандовый сироп', 'ingredients': None,
          'variants': [{'measure': None, 'price': 1590,
                        'nutrition': {'calories': 280, 'proteins': None, 'fats': None, 'carbs': None}}]},
@@ -342,36 +323,39 @@ PROMPT_EXAMPLE = {
 def build_prompt(etalon, categories):
     cats = '\n'.join(f'  - {c["id"]} — {c["name"]}' for c in categories if c['id'] != 'other')
     template = shorten_keys(etalon)
-    for item in template.get('itms', []):
-        item.pop('id', None)  # id позиции скрипт строит из названия
+    template.pop('cats', None)  # разделы скрипт собирает сам — по sec у позиций
+    template['itms'] = [{'sec': '', **{k: v for k, v in item.items() if k != 'id'}}  # id строится из названия
+                        for item in template.get('itms', [])]
     return f"""На фото — страница меню кофейни. Перепиши ВСЕ позиции с фото в JSON строго по шаблону.
 
-Ключи в шаблоне сокращены: cats — разделы, itms — позиции, mods — группы добавок, cid — id раздела,
+Ключи в шаблоне сокращены: itms — позиции, mods — группы добавок, sec — раздел, cid — тип позиции,
 n — название, ic — эмодзи, desc — описание, ing — состав, vars — варианты (размеры), m — объём/вес,
 p — цена, nut — КБЖУ (cal, pro, fat, carb), t — тип, app — к каким разделам, opts — варианты, def — по умолчанию.
 
 Правила:
 1. Ответ — только JSON-объект, без пояснений и без ```.
 2. Ничего не выдумывай. Чего нет на фото (описание, состав, объём/вес, КБЖУ) — пиши null.
-3. cid — только один из этих разделов:
+3. sec — заголовок раздела, под которым позиция стоит на фото, слово в слово, как написано
+   («чёрный кофе», «back to 00's movies», «сэндвичи и роллы»). У всех позиций под одним заголовком — один sec.
+   Вкладки и кнопки вверху экрана («напитки», «витрина», «магазинная полка») — не заголовки разделов.
+4. cid — тип позиции (нужен для цвета и рекомендаций), только один из:
 {cats}
-   Если ничего не подходит — other. В cats[].n пиши название раздела так, как оно написано на фото.
-   Напитки (в том числе глинтвейн, какао, урбеч, молочные коктейли) — только в разделы напитков
-   (coffee, tea, cocoa, cold_drinks), никогда не в блюда.
-4. p — число без пробелов и знака валюты: «1 290 ₸» → 1290.
-5. Один напиток в нескольких размерах (S/M/L, 250/350 мл) — одна позиция с несколькими vars,
+   Если ничего не подходит — other. Напитки (в том числе глинтвейн, какао, урбеч, молочные коктейли) —
+   только coffee, tea, cocoa или cold_drinks, никогда не блюда.
+5. p — число без пробелов и знака валюты: «1 290 ₸» → 1290.
+6. Один напиток в нескольких размерах (S/M/L, 250/350 мл) — одна позиция с несколькими vars,
    в m пиши объём или вес как на фото («350 мл», «150 г»), если не указан — null.
-6. Добавки с доплатой (сиропы, альтернативное молоко, доп. шот), если они есть на фото, — в mods:
+7. Добавки с доплатой (сиропы, альтернативное молоко, доп. шот), если они есть на фото, — в mods:
    t "single" — выбирается одно (молоко), "multi" — несколько (сиропы); app — id разделов.
    Если добавок на фото нет — "mods": [].
-7. Названия пиши как на фото, исправляя только явные ошибки распознавания.
-8. Если на фото нет меню — верни {{"cats": [], "mods": [], "itms": []}}.
-9. Фото может быть фрагментом длинного меню. Карточку, обрезанную верхним или нижним краем
-   (не видно названия или цены целиком), пропусти — она целиком есть на соседнем фрагменте.
-10. Цену читай очень внимательно, цифра за цифрой: 990, 1090 и 1290 — разные цены.
-11. Блоки «Популярное», «Хиты», «Рекомендуем», «Новинки» — не разделы: позиции из них всё равно
-    переписывай, cid выбирай по смыслу позиции, а сам блок в cats не добавляй.
-12. ic — один эмодзи, который точнее всего изображает позицию: 🍋 лимонад, 🍒 вишнёвый колд брю,
+8. Названия пиши как на фото, исправляя только явные ошибки распознавания.
+9. Если на фото нет меню — верни {{"mods": [], "itms": []}}.
+10. Фото может быть фрагментом длинного меню. Карточку, обрезанную верхним или нижним краем
+    (не видно названия или цены целиком), пропусти — она целиком есть на соседнем фрагменте.
+11. Цену читай очень внимательно, цифра за цифрой: 990, 1090 и 1290 — разные цены.
+12. Блоки «Популярное», «Хиты», «Рекомендуем», «Новинки» — не разделы: позиции из них всё равно
+    переписывай с sec: null, cid выбирай по смыслу позиции.
+13. ic — один эмодзи, который точнее всего изображает позицию: 🍋 лимонад, 🍒 вишнёвый колд брю,
     🥜 урбеч, 🍵 матча, 🍫 горячий шоколад, 🥛 молочный коктейль, ☕ классический кофе.
 
 Шаблон (пустой):
@@ -512,57 +496,51 @@ def nutrition(v):
     return n if any(x not in (None, 0) for x in n.values()) else None
 
 
+def name_stem(name):
+    """Название для сравнения и признак, что оно обрезано на карточке многоточием («Батч смородиновы...»)."""
+    key = re.sub(r'\s+', ' ', name.lower().replace('ё', 'е')).strip()
+    stem = re.sub(r'\s*(\.{2,}|…)$', '', key).strip()
+    return (stem, True) if stem != key and len(stem) >= 4 else (key, False)
+
+
 POPULAR_RE = re.compile(r'популяр|хит|рекоменд|бестселл|новинк|popular|best|hits?\b', re.I)
 
 
 class MenuBuilder:
-    """Копит разделы, добавки и позиции со всех фото и следит, чтобы id не повторялись."""
+    """Копит разделы, добавки и позиции со всех фото и следит, чтобы id не повторялись.
+    Разделы — как на фото (заголовок над карточками), а стиль раздела (цвет, значок, рекомендации) —
+    из общих стилей coffee-menu/data/categories.json по типу позиций в нём."""
 
     def __init__(self, cafe_id, styles):
         self.cafe_id = cafe_id
         self.styles = {s['id']: s for s in styles}
-        self.categories = {}       # id → раздел
+        self.sections = {}         # ключ названия → название раздела с фото (порядок — как на фото)
         self.groups = {}           # id → группа добавок
         self.items = []
         self.item_ids = set()
-        self.named = set()         # разделы, у которых уже есть настоящее название с фото
         self.by_key = {}           # название → id позиции (чтобы привязать фото)
-        self.seen = set()          # названия: одна позиция на разных фото/фрагментах и в «Популярном»
         self.warnings = []
+        self.no_price = []         # позиции без цены: (откуда, название, ключ, обрезано, раздел)
 
-    def category_id(self, raw):
+    def style_id(self, raw):
         cid = str(raw or '').strip()
         return cid if cid in self.styles else 'other'
 
-    def add_category(self, raw_id, name=None):
-        cid = self.category_id(raw_id)
+    def section(self, name):
+        """Название раздела с фото или None — для «Популярного» и подобных витрин."""
         name = tidy_name(name)
-        if name and POPULAR_RE.search(name):
-            name = None  # «Популярное» — витрина, а не раздел; его именем раздел не называем
-        if cid not in self.categories:
-            style = self.styles.get(cid, {})
-            self.categories[cid] = {
-                'id': cid,
-                'name': name or style.get('name', cid),
-                'icon': style.get('emoji'),
-                'order': len(self.categories) + 1,
-            }
-        elif name and cid not in self.named:
-            self.categories[cid]['name'] = name  # раньше было стандартное имя — берём настоящее с фото
-        if name:
-            self.named.add(cid)
-        return cid
+        if not name or POPULAR_RE.search(name):
+            return None
+        key = name.lower().replace('ё', 'е')
+        return self.sections.setdefault(key, name)
 
     def add(self, data, source):
         if not isinstance(data, dict):
             self.warnings.append(f'{source}: ответ не является объектом JSON')
             return 0
 
-        names = {}
-        for c in data.get('categories') or []:
-            if isinstance(c, dict):
-                names[self.category_id(c.get('id'))] = c.get('name')
-                self.add_category(c.get('id'), c.get('name'))
+        # старые ответы (из кэша) без section: название раздела — из categories по типу
+        names = {self.style_id(c.get('id')): c.get('name') for c in data.get('categories') or [] if isinstance(c, dict)}
 
         for g in data.get('modifier_groups') or []:
             self.add_group(g, source)
@@ -605,13 +583,10 @@ class MenuBuilder:
         if not isinstance(raw, dict) or not text_or_null(raw.get('name')):
             return False
         name = tidy_name(raw['name'])
-        cid = self.add_category(raw.get('category_id'), names.get(self.category_id(raw.get('category_id'))))
+        style = self.style_id(raw.get('category_id'))
+        section = self.section(raw['section'] if 'section' in raw else names.get(style))
 
         key = re.sub(r'\s+', ' ', name.lower().replace('ё', 'е'))
-        if key in self.seen:
-            return False  # уже есть: с другого фото, из перекрытия фрагментов или из блока «Популярное»
-        self.seen.add(key)
-
         variants = []
         for v in raw.get('variants') or []:
             if not isinstance(v, dict):
@@ -622,8 +597,23 @@ class MenuBuilder:
             variants.append({'measure': text_or_null(v.get('measure')), 'price': price, 'nutrition': nutrition(v.get('nutrition'))})
         if not variants and to_price(raw.get('price')):  # модель могла написать цену прямо у позиции
             variants.append({'measure': None, 'price': to_price(raw['price']), 'nutrition': None})
+        same_key, cut = name_stem(name)
         if not variants:
-            self.warnings.append(f'{source}: «{name}» пропущена — не распознана цена')
+            # цены не видно — не страшно, если позиция есть на другом фрагменте, где цена видна (проверим в конце)
+            self.no_price.append((source, name, same_key, cut, section))
+            return False
+
+        item = self.find_same(same_key, cut, section, variants[0]['price'])
+        if item:
+            # уже есть: с другого фото, из перекрытия фрагментов или из «Популярного»
+            if item['_cut'] and not cut:   # там название было обрезано («Лимонад Смородина-...») — берём полное
+                item.update(name=name, _stem=same_key, _cut=False)
+                self.by_key[key] = item['id']
+            if section and not item['_section']:
+                # была только в «Популярном», а теперь нашлась в своём разделе — переносим туда
+                item['_section'] = section
+                self.items.remove(item)
+                self.items.append(item)
             return False
 
         # id — всегда из названия: модель иногда повторяет один id у разных позиций
@@ -639,8 +629,12 @@ class MenuBuilder:
         ingredients = [str(x).strip() for x in raw.get('ingredients') or [] if str(x).strip()]
         self.by_key[key] = item_id
         self.items.append({
+            '_section': section,
+            '_style': style,
+            '_stem': same_key,
+            '_cut': cut,
             'id': item_id,
-            'category_id': cid,
+            'category_id': None,           # id раздела — в result(), когда известны все разделы
             'name': name,
             'image_url': None,             # проставляется, если фото позиции удалось вырезать
             'icon': icon_or_null(raw.get('icon')),
@@ -652,6 +646,18 @@ class MenuBuilder:
                          for i, v in enumerate(variants)],
         })
         return True
+
+    def find_same(self, stem, cut, section, price):
+        """Та же позиция, уже добавленная раньше: название совпадает (или одно — обрезанное начало другого),
+        цена та же, а раздел тот же или неизвестен (в «Популярном»). Одинаковые названия с другой ценой
+        или в другом разделе — разные позиции: «Espresso Blend, для эспрессо...» за 3490 (200 г) и за 13990 (1 кг)."""
+        for item in self.items:
+            same_name = (item['_stem'] == stem or (cut and item['_stem'].startswith(stem))
+                         or (item['_cut'] and stem.startswith(item['_stem'])))
+            if (same_name and price in (None, item['variants'][0]['price'])
+                    and (not section or not item['_section'] or item['_section'] == section)):
+                return item
+        return None
 
     def find_id(self, name):
         """id позиции по названию, как его написала модель (без учёта регистра, ё/е и пробелов).
@@ -668,23 +674,48 @@ class MenuBuilder:
         return None
 
     def result(self):
-        used = {i['category_id'] for i in self.items}
-        categories = [c for c in self.categories.values() if c['id'] in used]
-        for i, c in enumerate(categories, 1):
-            c['order'] = i
-        return {'categories': categories, 'modifier_groups': list(self.groups.values()), 'items': self.items}
+        from collections import Counter
+        # позиции, раздел которых так и не встретился, — в раздел по типу («Кофе», «Десерты»…)
+        for item in self.items:
+            if not item['_section']:
+                item['_section'] = self.section(self.styles.get(item['_style'], {}).get('name') or 'Другое')
+        for source, name, key, cut, section in self.no_price:
+            if not self.find_same(key, cut, section, None):
+                self.warnings.append(f'{source}: «{name}» пропущена — не распознана цена')
+        self.no_price = []
+        # разделы — в порядке, в котором на фото встречаются их позиции
+        first = {}
+        for n, item in enumerate(self.items):
+            first.setdefault(item['_section'], n)
+        categories, ids = [], {}
+        for name in sorted(first, key=first.get):
+            members = [i for i in self.items if i['_section'] == name]
+            style = Counter(i['_style'] for i in members).most_common(1)[0][0]
+            cid = base = slug(name) or style
+            n = 2
+            while cid in ids.values():
+                cid, n = f'{base}_{n}', n + 1
+            ids[name] = cid
+            categories.append({'id': cid, 'style': style, 'name': name,
+                               'icon': self.styles.get(style, {}).get('emoji'), 'order': len(categories) + 1})
+        items = [{**{k: v for k, v in i.items() if not k.startswith('_')}, 'category_id': ids[i['_section']]}
+                 for i in self.items]
+        return {'categories': categories, 'modifier_groups': list(self.groups.values()), 'items': items}
 
 
 def last_section_name(data):
     """Название раздела, которым заканчивается ответ модели по фрагменту, — подсказка для следующего."""
     if not isinstance(data, dict):
         return None
-    names = {c.get('id'): c.get('name') for c in data.get('categories') or [] if isinstance(c, dict)}
     items = [i for i in data.get('items') or [] if isinstance(i, dict)]
+    for item in reversed(items):
+        sec = text_or_null(item.get('section'))
+        if sec and not POPULAR_RE.search(sec):
+            return sec
+    names = {c.get('id'): c.get('name') for c in data.get('categories') or [] if isinstance(c, dict)}
     if items and names.get(items[-1].get('category_id')):
         return text_or_null(names[items[-1]['category_id']])
-    cats = [c for c in data.get('categories') or [] if isinstance(c, dict)]
-    return text_or_null(cats[-1].get('name')) if cats else None
+    return None
 
 
 # ───────── целая вкладка: сведения, меню, фотографии, ответы модели
@@ -746,6 +777,11 @@ def write_tab(folder, cafe_id, info, menu, crops, logo=None):
         img.thumbnail((600, 600))
         item['image_url'] = f'images/{item["id"]}.jpg'
         img.save(folder / item['image_url'], 'JPEG', quality=85, optimize=True)
+    # фото позиций, которых в новом меню нет или у которых теперь эмодзи, — убираем (archive/ не трогаем)
+    used = {item['image_url'] for item in menu['items'] if item['image_url']}
+    for old in (folder / 'images').glob('item_*.jpg'):
+        if f'images/{old.name}' not in used:
+            old.unlink()
     write_json(folder / 'menu.json', menu)
     write_json(folder / 'cafe.json', entry)
     if on_site:
@@ -833,7 +869,8 @@ def main():
         for k, (tile_img, tile) in enumerate(tiles, 1):
             label = f'{photo.name} [{k}/{len(tiles)}]' if len(tiles) > 1 else photo.name
             context = (f'\n\nЭто фрагмент {k} из {len(tiles)} одного длинного меню. На предыдущем фрагменте последним '
-                       f'был раздел «{last_section}» — позиции в начале этого фрагмента до первого заголовка относятся к нему.'
+                       f'был раздел «{last_section}» — у позиций в начале этого фрагмента до первого заголовка '
+                       f'sec: «{last_section}».'
                        if k > 1 and last_section else '')
             suffix = f'_{k:02d}' if len(tiles) > 1 else ''
             raw_menu = raw_dir / f'{photo.stem}{suffix}.json'

@@ -118,6 +118,7 @@ def ask_photos(client, model, data_url):
 CARD_SIZE = 600      # фото позиции на сайте — квадрат CARD_SIZE×CARD_SIZE
 CARD_MARGIN = 0.08   # поле вокруг предмета, доля стороны
 MAX_UPSCALE = 2.0    # во сколько раз можно увеличить фото со скриншота: сильнее — мыло
+CARD_BG = (248, 247, 245)  # общий тон светлого фона плашек
 
 
 def _content_mask(region):
@@ -149,37 +150,63 @@ def is_faded(img):
     return mid < 0.06 or (mid < 0.13 and lum[obj].mean() > 195 and sat[obj].mean() < 0.12)
 
 
-def to_card(img, mask):
-    """Квадратная плашка CARD_SIZE×CARD_SIZE: предмет вырезан по контуру и положен на ровный фон
-    цвета фона фото — без прямоугольника исходного кадра и без размытия краёв.
-    По горизонтали по центру — корпус предмета, а не рамка вместе с ручкой кружки:
-    корпус — столбцы, где предмет «высокий», ручка в них не попадает (она тонкая)."""
+def to_card(img, box, center):
+    """Квадратная плашка CARD_SIZE×CARD_SIZE из настоящего куска фото — без вырезания по контуру,
+    поэтому белая кружка на белом фоне остаётся целой, с родными тенями и бликами.
+    img — фото с запасом фона вокруг предмета, box — рамка предмета в нём, center — центр корпуса
+    по горизонтали (без ручки кружки): по нему предмет ставится в центр плашки.
+    Остальная часть квадрата — фон фото, к краям куска он переходит плавно, а предмета переход не касается.
+    Светлый фон всех плашек приводится к одному тону — кремовый, серый и белый не скачут от позиции к позиции."""
     import numpy as np
-    from PIL import Image, ImageFilter
-    a = np.asarray(img.convert('RGB'))
-    bg = tuple(int(v) for v in np.median(a[~mask], axis=0)) if (~mask).any() else (255, 255, 255)
+    from PIL import Image
+    a = np.asarray(img.convert('RGB'), dtype=np.float32)
+    border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
+    bg = np.median(border, axis=0)
+    if bg.min() > 180:  # светлый фон — выравниваем к общему тону
+        a = np.clip(a * (CARD_BG / bg), 0, 255)
+        bg = np.array(CARD_BG, dtype=np.float32)
 
-    heights = mask.sum(axis=0)
-    body = np.flatnonzero(heights >= 0.75 * heights.max())
-    center = (body[0] + body[-1] + 1) / 2 if len(body) else img.width / 2
-    # ручка сдвигает корпус от центра рамки не больше чем на 15% ширины; больше — значит, маска
-    # неполная (белое на белом), и надёжнее центр рамки
-    center = min(max(center, 0.35 * img.width), 0.65 * img.width)
-    half = max(center, img.width - center)  # ширина от центра корпуса до дальнего края (ручки)
-
+    x0, y0, x1, y1 = box
+    half = max(center - x0, x1 - center)  # от центра корпуса до дальнего края (ручки)
     inner = CARD_SIZE * (1 - 2 * CARD_MARGIN)
-    scale = min(inner / max(2 * half, img.height), MAX_UPSCALE)
+    scale = min(inner / max(2 * half, y1 - y0), MAX_UPSCALE)
     size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
-    fitted = img.convert('RGB').resize(size, Image.LANCZOS)
-    # маска предмета с запасом: вокруг предмета берётся и немного его родного фона (тень, блики),
-    # а дальше — ровный фон плашки; переход в пару пикселей, на ровном фоне его не видно
-    grow = max(3, round(min(size) * 0.025)) * 2 + 1
-    alpha = Image.fromarray(mask.astype('uint8') * 255, 'L').resize(size, Image.LANCZOS)
-    alpha = alpha.filter(ImageFilter.MaxFilter(grow)).filter(ImageFilter.GaussianBlur(2))
+    fitted = np.asarray(Image.fromarray(a.astype(np.uint8)).resize(size, Image.LANCZOS), dtype=np.float32)
+    left = round(CARD_SIZE / 2 - center * scale)
+    top = round(CARD_SIZE / 2 - (y0 + y1) / 2 * scale)
 
-    card = Image.new('RGB', (CARD_SIZE, CARD_SIZE), bg)
-    card.paste(fitted, (round(CARD_SIZE / 2 - center * scale), round((CARD_SIZE - size[1]) / 2)), alpha)
-    return card
+    # короткий переход края куска в продолжение фона (несколько пикселей, только по полю фона, не по предмету)
+    def ramp(n, before, after):
+        before, after = max(1.0, min(before * scale * 0.8, 8)), max(1.0, min(after * scale * 0.8, 8))
+        i = np.arange(n, dtype=np.float32)
+        return np.clip(np.minimum((i + 1) / before, (n - i) / after), 0, 1)
+    alpha = np.minimum.outer(ramp(size[1], y0, img.height - y1), ramp(size[0], x0, img.width - x1))[..., None]
+
+    # фон за краем куска — продолжение его же краёв (размытое), которое к краям плашки
+    # плавно переходит в общий тон: шва нет, даже если фон исходного фото неровный
+    from scipy import ndimage
+    cx0, cy0 = max(0, -left), max(0, -top)                      # видимая в квадрате часть куска
+    cx1, cy1 = min(size[0], CARD_SIZE - left), min(size[1], CARD_SIZE - top)
+    piece = fitted[cy0:cy1, cx0:cx1]
+    px0, py0 = left + cx0, top + cy0
+    pads = ((py0, CARD_SIZE - py0 - piece.shape[0]), (px0, CARD_SIZE - px0 - piece.shape[1]), (0, 0))
+    around = np.pad(piece, pads, mode='edge')
+    # где предмет упирается в край куска (фона почти нет), продолжать край нельзя — потянется сам предмет
+    ph, pw = piece.shape[:2]
+    if (y0 - cy0 / scale) * scale < 6: around[:py0] = bg
+    if (img.height - y1) * scale - (size[1] - cy1) < 6: around[py0 + ph:] = bg
+    if (x0 - cx0 / scale) * scale < 6: around[:, :px0] = bg
+    if (img.width - x1) * scale - (size[0] - cx1) < 6: around[:, px0 + pw:] = bg
+    around = ndimage.gaussian_filter(around, sigma=(18, 18, 0))
+    yy, xx = np.mgrid[0:CARD_SIZE, 0:CARD_SIZE]
+    dx = np.maximum(0, np.maximum(px0 - xx, xx - (px0 + piece.shape[1] - 1)))
+    dy = np.maximum(0, np.maximum(py0 - yy, yy - (py0 + piece.shape[0] - 1)))
+    to_bg = np.clip(np.hypot(dx, dy) / 90, 0, 1)[..., None]
+    card = around * (1 - to_bg) + bg * to_bg
+    dst = card[py0:py0 + piece.shape[0], px0:px0 + piece.shape[1]]
+    al = alpha[cy0:cy1, cx0:cx1]
+    dst[:] = piece * al + dst * (1 - al)
+    return Image.fromarray(np.clip(card, 0, 255).astype(np.uint8))
 
 
 def crop_photo(tile, box):
@@ -191,9 +218,12 @@ def crop_photo(tile, box):
         found = _locate_photo(tile, candidate)
         if found is not None:
             break
-    if found is None or is_faded(found[0]):
+    if found is None:
         return None
-    return to_card(*found)
+    img, box, center = found
+    if is_faded(img.crop(box)):
+        return None
+    return to_card(img, box, center)
 
 
 def _box_orders(box):
@@ -264,13 +294,35 @@ def _locate_photo(tile, box):
         if H - (ey1 + r1) < max(40, 0.3 * (r1 - r0)):
             return None  # под фото нет места для подписи — фото чужой карточки, обрезанной снизу
 
-        # маска без дыр: белая середина пачки или чашки — тоже предмет. Контур белого на белом
-        # бывает с разрывами — сначала их закрываем (с запасом по краям, чтобы не «съесть» края)
+        # центр корпуса без ручки кружки: столбцы, где предмет «высокий» (ручка тонкая и в них не попадает).
+        # Маска без дыр: белая середина пачки или чашки — тоже предмет; разрывы контура сначала закрываем
         k = max(3, round(0.04 * max(r1 - r0, c1 - c0)))
         padded = np.pad(obj[r0:r1, c0:c1], k)
         filled = ndimage.binary_fill_holes(ndimage.binary_closing(padded, iterations=k))[k:-k, k:-k]
-        img = tile.crop((ex1 + c0, ey1 + r0, ex1 + c1, ey1 + r1))
-        return img, filled
+        heights = filled.sum(axis=0)
+        body = np.flatnonzero(heights >= 0.75 * heights.max())
+        center = (body[0] + body[-1] + 1) / 2 if len(body) else (c1 - c0) / 2
+        # ручка сдвигает корпус от центра не больше чем на 15% ширины; больше — маска неполная (белое на белом)
+        center = c0 + min(max(center, 0.35 * (c1 - c0)), 0.65 * (c1 - c0))
+
+        # кусок фото с запасом фона вокруг предмета, но без чужого: соседних карточек, подписи
+        margin = round(0.12 * max(r1 - r0, c1 - c0))
+        foreign = mask & ~np.isin(labels, keep)
+        def free(lines):  # сколько строк/столбцов фона можно взять, пока не начнётся чужое
+            n = 0
+            for line in lines[:margin]:
+                if line.any():
+                    break
+                n += 1
+            return max(0, n - 2)
+        top = free(foreign[r0 - 1::-1, c0:c1] if r0 else foreign[:0])
+        bottom = free(foreign[r1:, c0:c1])
+        left = free(foreign[r0:r1, c0 - 1::-1].T if c0 else foreign[:0])
+        right = free(foreign[r0:r1, c1:].T)
+        X0, Y0 = ex1 + c0 - left, ey1 + r0 - top
+        img = tile.crop((X0, Y0, ex1 + c1 + right, ey1 + r1 + bottom))
+        box = (left, top, left + c1 - c0, top + r1 - r0)
+        return img, box, ex1 + center - X0
     return None
 
 

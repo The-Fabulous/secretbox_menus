@@ -12,7 +12,10 @@
       "address": null,
       "city": null,
       "hours": null,
-      "currency": "KZT"
+      "currency": "KZT",
+      "theme": {
+        "accent": "#0b6f7a"
+      }
     },
     {
       "id": "ayu_menu",
@@ -22,7 +25,10 @@
       "address": null,
       "city": null,
       "hours": null,
-      "currency": "KZT"
+      "currency": "KZT",
+      "theme": {
+        "accent": "#8a5230"
+      }
     },
     {
       "id": "zerno",
@@ -32,7 +38,10 @@
       "address": "ул. Панфилова, 98",
       "city": "Алматы",
       "hours": "до 22:00",
-      "currency": "KZT"
+      "currency": "KZT",
+      "theme": {
+        "accent": null
+      }
     },
     {
       "id": "test",
@@ -42,7 +51,10 @@
       "address": null,
       "city": null,
       "hours": null,
-      "currency": "KZT"
+      "currency": "KZT",
+      "theme": {
+        "accent": null
+      }
     },
     {
       "id": "test1",
@@ -52,7 +64,10 @@
       "address": null,
       "city": null,
       "hours": null,
-      "currency": "KZT"
+      "currency": "KZT",
+      "theme": {
+        "accent": null
+      }
     }
   ]
 }

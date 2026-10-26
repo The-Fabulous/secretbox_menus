@@ -9,6 +9,7 @@ const API = (() => {
   const ENDPOINTS = {
     styles: () => 'data/categories.json',   // будущее: /api/category-styles
     cafes:  () => 'data/cafes.json',        // будущее: /api/cafes
+    tags:   () => 'data/tags.json',         // будущее: /api/tags
     menu:   cafe => cafe.file,              // будущее: `/api/cafes/${cafe.id}/menu`
   };
 
@@ -38,6 +39,29 @@ const API = (() => {
   const num = v => (present(v) && Number.isFinite(Number(v)) ? Number(v) : null);
   const str = v => (present(v) ? String(v) : null);
 
+  // Переводы из JSON ("i18n": { "kz": { "name": ..., "description": ..., "ingredients": [...] } })
+  // приводятся к тем же именам полей, что и у позиции после нормализации (name, desc, ing).
+  const I18N_FIELDS = { name: 'name', description: 'desc', ingredients: 'ing' };
+  function normalizeI18n(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const out = {};
+    for (const [lang, fields] of Object.entries(raw)) {
+      if (!fields || typeof fields !== 'object') continue;
+      out[lang] = {};
+      for (const [from, to] of Object.entries(I18N_FIELDS)) {
+        const v = fields[from];
+        if (Array.isArray(v) ? v.length : present(v)) out[lang][to] = Array.isArray(v) ? v.map(String) : String(v);
+      }
+    }
+    return out;
+  }
+  // перевод раздела кофейни дополняет перевод из общих стилей
+  const mergeI18n = (base = {}, extra = {}) => {
+    const out = { ...base };
+    for (const [lang, fields] of Object.entries(extra)) out[lang] = { ...(base[lang] || {}), ...fields };
+    return out;
+  };
+
   // ───────── общие стили разделов (цвет, тип, рекомендации)
 
   const FALLBACK_STYLE = {
@@ -57,6 +81,7 @@ const API = (() => {
         colors: Array.isArray(c.colors) && c.colors.length === 2 ? c.colors : FALLBACK_STYLE.colors,
         pairsWith: Array.isArray(c.pairs_with) ? c.pairs_with : [],
         prep: num(c.default_prep_min) || FALLBACK_STYLE.prep,
+        i18n: normalizeI18n(c.i18n),
       };
     });
     if (!styles.other) styles.other = FALLBACK_STYLE;
@@ -79,8 +104,31 @@ const API = (() => {
         city: str(c.city),
         hours: str(c.hours),
         currency: str(c.currency) || 'KZT',
+        // фирменный цвет кофейни: кнопки, акценты, выбранные варианты
+        accent: c.theme && /^#[0-9a-f]{6}$/i.test(c.theme.accent) ? c.theme.accent : null,
       }));
     return { brand: { name: str(brand.name) || 'Меню', logo: str(brand.logo) }, cafes };
+  }
+
+  // ───────── метки позиций (Хит, Новинка, Веган…). Файла нет — меток нет, сайт работает и без них
+
+  async function getTags() {
+    let raw;
+    try {
+      raw = await getJSON(ENDPOINTS.tags());
+    } catch (e) {
+      console.warn('Метки не загружены:', e.message);
+      return [];
+    }
+    return ((raw && raw.tags) || [])
+      .filter(t => t && present(t.id) && present(t.name))
+      .map(t => ({
+        id: String(t.id),
+        name: String(t.name),
+        emoji: str(t.emoji) || '',
+        color: /^#[0-9a-f]{6}$/i.test(t.color) ? t.color : null,
+        i18n: normalizeI18n(t.i18n),
+      }));
   }
 
   // ───────── меню кофейни
@@ -93,7 +141,46 @@ const API = (() => {
       name: str(raw.name) || style.name,
       emoji: str(raw.icon) || style.emoji,
       order: num(raw.order) ?? 1000 + index,
+      i18n: mergeI18n(style.i18n, normalizeI18n(raw.i18n)),
     };
+  }
+
+  // Группы добавок: молоко (выбор одного), сироп / доп. шот (можно несколько).
+  // id попадают в ключ заказа («milk.oat,syrup.vanilla»), поэтому только буквы, цифры, _ и -.
+  const SAFE_ID = /^[\w-]+$/;
+  const safeId = (v, what) => {
+    if (present(v) && SAFE_ID.test(String(v))) return true;
+    console.warn(`${what} пропущен: id «${v}» может содержать только латинские буквы, цифры, _ и -`);
+    return false;
+  };
+
+  function normalizeModifierGroups(raw) {
+    return (Array.isArray(raw) ? raw : [])
+      .filter(g => g && safeId(g.id, 'Группа добавок') && Array.isArray(g.options))
+      .map(g => {
+        const options = g.options
+          .filter(o => o && safeId(o.id, `Вариант добавки в «${g.id}»`) && present(o.name))
+          .map(o => ({
+            id: String(o.id),
+            name: String(o.name),
+            price: num(o.price) || 0,
+            default: o.default === true,
+            i18n: normalizeI18n(o.i18n),
+          }));
+        const type = g.type === 'multi' ? 'multi' : 'single';
+        // в группе «один из» всегда есть вариант по умолчанию
+        if (type === 'single' && options.length && !options.some(o => o.default)) options[0].default = true;
+        return {
+          id: String(g.id),
+          name: str(g.name) || String(g.id),
+          type,
+          max: type === 'multi' ? num(g.max) : 1,
+          appliesTo: Array.isArray(g.applies_to) ? g.applies_to.map(String) : [],
+          options,
+          i18n: normalizeI18n(g.i18n),
+        };
+      })
+      .filter(g => g.options.length);
   }
 
   function normalizeNutrition(n) {
@@ -148,6 +235,10 @@ const API = (() => {
       special: raw.is_special === true,
       sizes,
       price: sizes[0].price,
+      i18n: normalizeI18n(raw.i18n),
+      tags: Array.isArray(raw.tags) ? raw.tags.filter(present).map(String) : [],
+      // null — добавки по разделу (applies_to); [] — без добавок; ['milk'] — только эти группы
+      modIds: Array.isArray(raw.modifier_group_ids) ? raw.modifier_group_ids.map(String) : null,
     };
   }
 
@@ -163,9 +254,17 @@ const API = (() => {
       .map((it, i) => normalizeItem(it, i, cats, styles, usedIds))
       .filter(Boolean);
 
+    const groups = normalizeModifierGroups(raw.modifier_groups);
+    items.forEach(item => {
+      item.mods = item.modIds
+        ? groups.filter(g => item.modIds.includes(g.id))
+        : groups.filter(g => g.appliesTo.includes(item.cat));
+      delete item.modIds;
+    });
+
     cats.sort((a, b) => a.order - b.order);
     return { cafe, currency: cafe.currency, categories: cats, items };
   }
 
-  return { getStyles, getCafes, getMenu, DataError };
+  return { getStyles, getCafes, getTags, getMenu, DataError };
 })();

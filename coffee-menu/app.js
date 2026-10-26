@@ -1,78 +1,168 @@
 (() => {
   'use strict';
 
+  const { t: T, L } = I18N;
+
   // Заполняется после загрузки данных (см. init)
   let STYLES = {};        // общие стили разделов (data/categories.json)
+  let TAGS = {};          // метки позиций (data/tags.json): id → метка
   let BRAND = null;       // { name, logo } — для экрана выбора кофейни
   let MENU = null;        // { cafe, currency, categories, items }
   let CATS = {};          // id раздела → раздел текущей кофейни
   let BY_ID = {};         // id позиции → позиция
-  let STORAGE_KEY = '';
   let money = null;
 
   const state = {
-    cat: 'all',
-    order: {},            // { 'id:variantIndex': qty }
+    order: {},            // { 'id:variantIndex[:добавки]': qty }
+    comment: '',          // комментарий к заказу
     dineIn: 'hall',       // 'hall' | 'togo'
     when: 'asap',         // 'asap' | минуты
-    stack: [],            // открытые окна: { type: 'product', id, size } | { type: 'order' }
+    table: null,          // номер стола из QR-кода (?table=5)
+    stack: [],            // открытые окна: product | order | filters | profile
+    spy: null,            // раздел, который сейчас на экране
+    search: { open: false, q: '' },
+    filters: { tags: [], max: null },  // метки (все должны быть у позиции) и цена «до»
+    favs: [],             // избранное — id позиций
+    history: [],          // прошлые заказы этой кофейни
+    picker: null,         // { cafes, menus } — экран выбора кофейни
+    error: null,
   };
 
   const $ = sel => document.querySelector(sel);
   const overlay = $('#overlay');
   const sheet = $('#sheet');
   const cartBar = $('#cartBar');
+  const tabsWrap = $('#tabsWrap');
 
   // ───────── helpers
 
   const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
+  const decode = s => { try { return decodeURIComponent(s); } catch { return ''; } };
 
   const fmt = n => money.format(Math.round(n));
-  const keyOf = (id, size = 0) => `${encodeURIComponent(id)}:${size}`;
-  const parseKey = key => {
-    const [id, size] = key.split(':');
-    return { item: BY_ID[decodeURIComponent(id)], size: Number(size) || 0 };
-  };
-  const priceOf = (item, size = 0) => item.sizes[size].price;
   const minPrice = item => Math.min(...item.sizes.map(s => s.price));
   const catOf = item => CATS[item.cat] || STYLES.other;
   const isDrink = item => catOf(item).kind === 'drink';
   const qtyOf = key => state.order[key] || 0;
-  const priceLabel = item => (item.sizes.length > 1 ? 'от ' : '') + fmt(minPrice(item));
-
-  const SPECIAL_LABEL = { drink: 'Напиток дня', sweet: 'Десерт дня', set: 'Комбо дня' };
-  const specialLabel = item => SPECIAL_LABEL[catOf(item).kind] || 'Блюдо дня';
+  const priceLabel = item => (item.sizes.length > 1 ? T('from_price', { p: fmt(minPrice(item)) }) : fmt(minPrice(item)));
+  const specialLabel = item => T(`special_${{ drink: 'drink', sweet: 'sweet', set: 'set' }[catOf(item).kind] || 'food'}`);
+  const sizeLabel = (s, i) => s.amount || T('variant', { n: i + 1 });
+  const itemTags = item => item.tags.map(id => TAGS[id]).filter(Boolean);
 
   function makeMoney(currency) {
     try {
-      return new Intl.NumberFormat('ru-RU', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 });
+      return new Intl.NumberFormat(I18N.locale, { style: 'currency', currency, currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 });
     } catch {
-      return { format: n => `${n.toLocaleString('ru-RU')} ${currency}` };
+      return { format: n => `${n.toLocaleString(I18N.locale)} ${currency}` };
     }
   }
 
+  // Всё, что гость сохраняет, живёт только в его браузере. Ключи — с id кофейни.
+  const storeKey = name => `${name}:${MENU.cafe.id}`;
+  function readStore(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; }
+  }
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* приватный режим */ }
+  }
+
+  function toast(text) {
+    const el = $('#toast');
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => { el.hidden = true; }, 3200);
+  }
+
+  // ───────── добавки и ключ позиции в заказе
+  // Ключ: id:вариант[:добавки], добавки — «группа.опция» через запятую, без вариантов по умолчанию.
+  // Так «капучино 300 мл на овсяном» и «капучино 300 мл» — разные строки заказа.
+
+  const defaultSel = item => Object.fromEntries(item.mods.map(g =>
+    [g.id, g.type === 'single' ? g.options.filter(o => o.default).map(o => o.id) : []]));
+
+  // порядок — как в меню, а не как нажимали: «ваниль + карамель» и «карамель + ваниль» — одна строка заказа
+  function modsKey(item, sel) {
+    const parts = [];
+    for (const g of item.mods) {
+      const picked = sel[g.id] || [];
+      for (const o of g.options) {
+        if (picked.includes(o.id) && !(g.type === 'single' && o.default)) parts.push(`${g.id}.${o.id}`);
+      }
+    }
+    return parts.join(',');
+  }
+
+  function parseMods(item, str) {
+    const sel = defaultSel(item);
+    for (const token of String(str || '').split(',').filter(Boolean)) {
+      const [gid, oid] = token.split('.');
+      const g = item.mods.find(x => x.id === gid);
+      if (!g || !g.options.some(o => o.id === oid)) continue; // добавку убрали из меню — пропускаем
+      if (g.type === 'single') sel[g.id] = [oid];
+      else if (!sel[g.id].includes(oid) && (!g.max || sel[g.id].length < g.max)) sel[g.id].push(oid);
+    }
+    return sel;
+  }
+
+  const chosen = (item, sel) => item.mods.flatMap(g =>
+    (sel[g.id] || []).map(id => ({ g, o: g.options.find(x => x.id === id) })).filter(x => x.o));
+
+  const unitPrice = (item, size, sel) => item.sizes[size].price + chosen(item, sel).reduce((s, x) => s + x.o.price, 0);
+
+  // подпись добавок для заказа: «Овсяное · Ванильный»
+  const modsLabel = (item, sel) => chosen(item, sel)
+    .filter(x => !(x.g.type === 'single' && x.o.default))
+    .map(x => L(x.o, 'name')).join(' · ');
+
+  const keyOf = (id, size = 0, mods = '') => `${encodeURIComponent(id)}:${size}${mods ? `:${encodeURIComponent(mods)}` : ''}`;
+
+  function parseKey(key) {
+    const [id, size, mods] = String(key).split(':');
+    const item = BY_ID[decode(id)];
+    const sel = item ? parseMods(item, decode(mods || '')) : {};
+    return { item, size: Number(size) || 0, sel };
+  }
+
+  // из браузера берём только целые положительные количества — испорченная запись не должна ломать подсчёт
   function loadOrder() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+    const raw = readStore(storeKey('order'), {});
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    return Object.fromEntries(Object.entries(raw)
+      .map(([key, q]) => [key, Math.floor(Number(q))])
+      .filter(([, q]) => Number.isFinite(q) && q > 0 && q < 1000));
   }
-  function saveOrder() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.order)); } catch { /* приватный режим */ }
-  }
+  const saveOrder = () => writeStore(storeKey('order'), state.order);
+  const saveComment = () => writeStore(storeKey('comment'), state.comment);
+
+  // имя гостя — одно на все кофейни
+  const guestName = () => { const v = readStore('guest:name', ''); return typeof v === 'string' ? v : ''; };
 
   // позиции, которых больше нет в меню, из заказа выпадают; цены всегда актуальные из данных
   function orderLines() {
     return Object.entries(state.order)
       .map(([key, qty]) => ({ key, qty, ...parseKey(key) }))
-      .filter(l => l.qty > 0 && l.item && l.item.sizes[l.size]);
+      .filter(l => l.qty > 0 && l.item && l.item.sizes[l.size])
+      .map(l => ({ ...l, unit: unitPrice(l.item, l.size, l.sel) }));
   }
   const orderCount = () => orderLines().reduce((s, l) => s + l.qty, 0);
-  const orderTotal = () => orderLines().reduce((s, l) => s + priceOf(l.item, l.size) * l.qty, 0);
+  const orderTotal = () => orderLines().reduce((s, l) => s + l.unit * l.qty, 0);
 
-  function plural(n, one, few, many) {
-    const m10 = n % 10, m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return one;
-    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
-    return many;
+  // ───────── фильтры
+
+  const filtersActive = () => state.filters.tags.length + (state.filters.max !== null ? 1 : 0);
+  const passFilters = (item, f = state.filters) =>
+    f.tags.every(t => item.tags.includes(t)) && (f.max === null || minPrice(item) <= f.max);
+  const visibleItems = () => MENU.items.filter(i => passFilters(i));
+
+  function priceBounds() {
+    const prices = MENU.items.map(minPrice);
+    const step = 100;
+    return { min: Math.floor(Math.min(...prices) / step) * step, max: Math.ceil(Math.max(...prices) / step) * step, step };
   }
 
   // ───────── шаблоны
@@ -96,39 +186,59 @@
       <path d="M19 14c5 5 5 15 10 20" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
     </svg>`;
 
+  const SEARCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>';
+  const FILTER_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>';
+  const HEART_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg>';
+
   function logo(src, name, cls) {
     return src
       ? `<img class="${cls}" src="${esc(src)}" alt="${esc(name)}">`
       : `<span class="${cls} logo-letter">${esc(name.trim().charAt(0).toUpperCase() || '☕')}</span>`;
   }
 
+  const tagChip = (tag, cls = 'tag') =>
+    `<span class="${cls}" ${tag.color ? `style="--tag:${esc(tag.color)}"` : ''}>${esc(tag.emoji)} ${esc(L(tag, 'name'))}</span>`;
+
+  function favButton(item, cls = '') {
+    const on = state.favs.includes(item.id);
+    return `<button class="fav-btn ${cls} ${on ? 'on' : ''}" type="button" data-fav="${esc(item.id)}"
+              aria-pressed="${on}" aria-label="${esc(T(on ? 'fav_remove' : 'fav_add'))}">${HEART_ICON}</button>`;
+  }
+
   // Кнопка «В заказ» или счётчик. Обновляется через updateSlots() без перерисовки карточек.
   function control(key, variant) {
     const q = qtyOf(key);
     const cls = variant === 'card' ? '' : variant; // «card» — уже класс карточки, на кнопку его не вешаем
-    const { item, size } = parseKey(key);
     if (!q) {
-      const label = variant === 'big'
-        ? `Добавить в заказ <span class="btn-sub">${fmt(priceOf(item, size))}</span>`
-        : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>В заказ`;
+      let label = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>${T('add')}`;
+      if (variant === 'big') {
+        const { item, size, sel } = parseKey(key);
+        label = `${T('add_to_order')} <span class="btn-sub">${fmt(unitPrice(item, size, sel))}</span>`;
+      }
       return `<button class="btn-add ${cls}" type="button" data-add="${esc(key)}">${label}</button>`;
     }
     return `
       <div class="stepper ${cls}">
-        <button type="button" data-dec="${esc(key)}" aria-label="Убрать одну">−</button>
-        <span>${variant === 'big' ? `${q} в заказе` : q}</span>
-        <button type="button" data-inc="${esc(key)}" aria-label="Добавить ещё">+</button>
+        <button type="button" data-dec="${esc(key)}" aria-label="${esc(T('remove_one'))}">−</button>
+        <span>${variant === 'big' ? T('in_order', { n: q }) : q}</span>
+        <button type="button" data-inc="${esc(key)}" aria-label="${esc(T('add_one'))}">+</button>
       </div>`;
   }
   const slot = (key, variant) => `<div class="slot" data-slot="${esc(key)}" data-variant="${variant}">${control(key, variant)}</div>`;
 
   function card(item) {
+    const desc = L(item, 'desc');
+    const tag = itemTags(item)[0];
     return `
-      <article class="card" data-open="${esc(item.id)}" tabindex="0" aria-label="${esc(item.name)}">
-        <div class="card-pic">${pic(item)}</div>
+      <article class="card" data-open="${esc(item.id)}" tabindex="0" aria-label="${esc(L(item, 'name'))}">
+        <div class="card-pic">
+          ${pic(item)}
+          ${tag ? tagChip(tag, 'tag tag-on-pic') : ''}
+          ${favButton(item)}
+        </div>
         <div class="card-body">
-          <h3 class="card-title">${esc(item.name)}</h3>
-          ${item.desc ? `<p class="card-short">${esc(item.desc)}</p>` : ''}
+          <h3 class="card-title">${esc(L(item, 'name'))}</h3>
+          ${desc ? `<p class="card-short">${esc(desc)}</p>` : ''}
           <div class="card-price"><b>${priceLabel(item)}</b></div>
           ${slot(keyOf(item.id), 'card')}
         </div>
@@ -137,31 +247,60 @@
 
   // ───────── шапка
 
+  function langSwitch() {
+    const cur = I18N.LANGS.find(l => l.id === I18N.lang);
+    return `
+      <div class="lang">
+        <button class="lang-btn" type="button" data-lang-toggle aria-haspopup="true" aria-expanded="false" aria-label="${esc(T('language'))}">
+          ${cur.label}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lang-menu" role="menu" hidden>
+          ${I18N.LANGS.map(l => `
+            <button type="button" role="menuitemradio" aria-checked="${l.id === I18N.lang}" class="${l.id === I18N.lang ? 'active' : ''}" data-lang="${l.id}">
+              <b>${l.label}</b>${l.name}
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
   function renderHeader(cafe, canSwitch) {
     const name = cafe ? cafe.name : BRAND.name;
     const addr = cafe && (cafe.address || cafe.city);
     const sub = cafe ? [cafe.address && cafe.city, cafe.hours].filter(Boolean).join(' · ') : '';
     const mapQuery = cafe ? encodeURIComponent([cafe.city, cafe.address].filter(Boolean).join(', ')) : '';
-    document.title = cafe ? `${cafe.name} — меню` : BRAND.name;
+    document.title = cafe ? `${cafe.name} — ${BRAND.name}` : BRAND.name;
 
     $('#topbar').innerHTML = `
-      ${addr ? `
-        <a class="address" href="https://2gis.kz/search/${mapQuery}" target="_blank" rel="noopener" title="Открыть на карте">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-          <span class="address-text">
-            <b>${esc(cafe.address || cafe.city)}</b>
-            ${sub ? `<small>${esc(sub)}</small>` : ''}
-          </span>
-        </a>` : '<span></span>'}
+      <div class="top-left">
+        ${addr ? `
+          <a class="address" href="https://2gis.kz/search/${mapQuery}" target="_blank" rel="noopener" title="${esc(T('open_map'))}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            <span class="address-text">
+              <b>${esc(cafe.address || cafe.city)}</b>
+              ${sub ? `<small>${esc(sub)}</small>` : ''}
+            </span>
+          </a>` : ''}
+        ${cafe && state.table ? `<span class="table-pill">🪑 ${esc(T('table', { n: state.table }))}</span>` : ''}
+      </div>
 
-      <a class="logo" href="${canSwitch ? './' : '#'}" ${canSwitch ? 'title="Выбрать другую кофейню"' : ''}>
+      <a class="logo" href="${canSwitch ? './' : '#'}" ${canSwitch ? `title="${esc(T('switch_cafe'))}"` : ''}>
         ${cafe ? logo(cafe.logo, name, 'logo-mark') : BEAN_MARK}
         <span class="logo-text">${esc(name)}</span>
       </a>
 
-      <button class="avatar" type="button" aria-label="Профиль">
-        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f6d7b8'/><stop offset='1' stop-color='%23d79a63'/></linearGradient></defs><rect width='64' height='64' fill='url(%23g)'/><circle cx='32' cy='26' r='11' fill='%23fff8f0'/><path d='M12 60c2-12 10-18 20-18s18 6 20 18' fill='%23fff8f0'/></svg>" alt="">
-      </button>`;
+      <div class="top-right">
+        ${langSwitch()}
+        <button class="avatar" type="button" ${cafe ? 'data-profile' : 'disabled'} aria-label="${esc(T('profile'))}">
+          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f6d7b8'/><stop offset='1' stop-color='%23d79a63'/></linearGradient></defs><rect width='64' height='64' fill='url(%23g)'/><circle cx='32' cy='26' r='11' fill='%23fff8f0'/><path d='M12 60c2-12 10-18 20-18s18 6 20 18' fill='%23fff8f0'/></svg>" alt="">
+        </button>
+      </div>`;
+  }
+
+  // фирменный цвет кофейни; от него в styles.css считаются тёмный и светлый оттенки
+  function applyTheme(cafe) {
+    const root = document.documentElement.style;
+    if (cafe && cafe.accent) root.setProperty('--accent', cafe.accent);
+    else root.removeProperty('--accent');
   }
 
   // ───────── главный экран
@@ -171,15 +310,16 @@
     $('#today').hidden = !specials.length;
     if (!specials.length) return;
 
-    $('#todayDate').textContent = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('#todayTitle').textContent = T('today');
+    $('#todayDate').textContent = I18N.formatDate(new Date());
 
     $('#specials').innerHTML = specials.map(item => `
       <article class="special" data-open="${esc(item.id)}" tabindex="0">
         <div class="special-pic">${pic(item)}</div>
         <div class="special-body">
           <span class="special-label">${specialLabel(item)}</span>
-          <h3>${esc(item.name)}</h3>
-          ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
+          <h3>${esc(L(item, 'name'))}</h3>
+          ${L(item, 'desc') ? `<p>${esc(L(item, 'desc'))}</p>` : ''}
           <div class="special-foot">
             <div class="card-price"><b>${priceLabel(item)}</b></div>
             ${slot(keyOf(item.id), 'card')}
@@ -188,52 +328,128 @@
       </article>`).join('');
   }
 
-  // в ленте — только разделы, в которых есть позиции
-  function menuCategories() {
-    const used = new Set(MENU.items.map(i => i.cat));
+  // разделы, в которых есть позиции (с учётом фильтров)
+  function menuCategories(items = visibleItems()) {
+    const used = new Set(items.map(i => i.cat));
     return MENU.categories.filter(c => used.has(c.id));
   }
 
-  function renderTabs() {
-    const cats = menuCategories();
-    $('#tabsWrap').hidden = cats.length === 0;
-    if (!cats.length) return;
-    if (state.cat !== 'all' && !cats.some(c => c.id === state.cat)) state.cat = 'all';
+  // Лента: поиск, фильтры и разделы. Нажатие на раздел прокручивает к нему,
+  // а при прокрутке подсвечивается раздел, который сейчас на экране.
+  function renderNav() {
+    tabsWrap.hidden = MENU.items.length === 0;
+    if (!MENU.items.length) return;
 
-    const tabs = $('#tabs');
-    const all = cats.length > 1 ? [{ id: 'all', name: 'Всё меню', emoji: '✨' }, ...cats] : cats;
-    if (cats.length === 1) state.cat = cats[0].id;
-
-    tabs.innerHTML = all.map(c => `
-      <button class="tab ${c.id === state.cat ? 'active' : ''}" type="button" role="tab"
-              aria-selected="${c.id === state.cat}" data-cat="${esc(c.id)}">
-        <span class="tab-emoji">${esc(c.emoji)}</span>${esc(c.name)}
-      </button>`).join('');
-    const active = tabs.querySelector('.active');
-    if (active) {
-      tabs.scrollTo({ left: active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
-    }
-  }
-
-  function renderMenu() {
-    const cats = menuCategories();
-    if (!cats.length) {
-      $('#menu').innerHTML = `
-        <div class="empty">
-          <div class="empty-emoji">📋</div>
-          <p>Меню пока пустое</p>
-          <small>Скоро здесь появятся напитки и блюда</small>
+    if (state.search.open) {
+      $('#tabs').innerHTML = `
+        <div class="search-bar">
+          ${SEARCH_ICON}
+          <input id="searchInput" type="search" value="${esc(state.search.q)}" placeholder="${esc(T('search'))}"
+                 autocomplete="off" enterkeyhint="search" aria-label="${esc(T('search'))}">
+          <button class="link" type="button" data-search-close>${T('cancel')}</button>
         </div>`;
       return;
     }
 
-    const groups = state.cat === 'all' ? cats : cats.filter(c => c.id === state.cat);
-    $('#menu').innerHTML = groups.map(c => {
-      const items = MENU.items.filter(i => i.cat === c.id);
-      return `
+    const cats = menuCategories();
+    const active = filtersActive();
+    if (!cats.some(c => c.id === state.spy)) state.spy = cats.length ? cats[0].id : null;
+    $('#tabs').innerHTML = `
+      <button class="tab tab-icon" type="button" data-search-open aria-label="${esc(T('search_open'))}">${SEARCH_ICON}</button>
+      <button class="tab tab-icon ${active ? 'on' : ''}" type="button" data-filters-open aria-label="${esc(T('filters'))}">
+        ${FILTER_ICON}${active ? `<span class="tab-count">${active}</span>` : ''}
+      </button>
+      ${cats.map(c => `
+        <button class="tab ${c.id === state.spy ? 'active' : ''}" type="button" data-cat="${esc(c.id)}"
+                ${c.id === state.spy ? 'aria-current="true"' : ''}>
+          <span class="tab-emoji">${esc(c.emoji)}</span>${esc(L(c, 'name'))}
+        </button>`).join('')}`;
+    centerActiveTab(false);
+  }
+
+  function centerActiveTab(smooth = true) {
+    const tabs = $('#tabs');
+    const active = tabs.querySelector('.tab.active');
+    if (active) {
+      tabs.scrollTo({ left: active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
+    }
+  }
+
+  function setSpy(id) {
+    if (!id || state.spy === id) return;
+    state.spy = id;
+    document.querySelectorAll('#tabs .tab[data-cat]').forEach(b => {
+      const on = b.dataset.cat === id;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    centerActiveTab();
+  }
+
+  // ───────── поиск: по названию, описанию, составу и разделу, на текущем языке и по-русски
+
+  const norm = s => String(s || '').toLowerCase().replace(/ё/g, 'е');
+
+  // «лосось» находит «с лососем», «круассаны» — «круассан»: у длинных слов отбрасываем окончание
+  const stem = w => (w.length >= 6 ? w.slice(0, -2) : w.length >= 4 ? w.slice(0, -1) : w);
+
+  function searchItems(q, items) {
+    const words = norm(q).split(/\s+/).filter(Boolean).map(stem);
+    if (!words.length) return [];
+    return items.filter(item => {
+      const cat = catOf(item);
+      const hay = norm([
+        L(item, 'name'), item.name, L(item, 'desc'), item.desc,
+        ...(L(item, 'ing') || []), ...item.ing, L(cat, 'name'), cat.name,
+        ...itemTags(item).flatMap(t => [L(t, 'name'), t.name]),
+      ].filter(Boolean).join(' '));
+      return words.every(w => hay.includes(w));
+    });
+  }
+
+  function renderMenu() {
+    const menu = $('#menu');
+    menu.hidden = false;
+
+    if (!MENU.items.length) {
+      menu.innerHTML = `
+        <div class="empty">
+          <div class="empty-emoji">📋</div>
+          <p>${T('menu_empty')}</p>
+          <small>${T('menu_empty_hint')}</small>
+        </div>`;
+      return;
+    }
+
+    const items = visibleItems();
+    const emptyFiltered = `
+      <div class="empty">
+        <div class="empty-emoji">🔍</div>
+        <p>${T(filtersActive() ? 'nothing_filtered' : 'nothing_found')}</p>
+        ${filtersActive()
+          ? `<button class="btn-ghost" type="button" data-filters-reset>${T('reset_filters')}</button>`
+          : `<small>${T('nothing_found_hint')}</small>`}
+      </div>`;
+
+    if (state.search.open && state.search.q.trim()) {
+      const found = searchItems(state.search.q, items);
+      menu.innerHTML = found.length ? `
         <div class="group">
-          <h2 class="group-title">${esc(c.name)} <span>${items.length}</span></h2>
-          <div class="grid">${items.map(card).join('')}</div>
+          <h2 class="group-title">${T('found', { n: found.length })}</h2>
+          <div class="grid">${found.map(card).join('')}</div>
+        </div>` : emptyFiltered;
+      return;
+    }
+
+    const cats = menuCategories(items);
+    if (!cats.length) { menu.innerHTML = emptyFiltered; return; }
+
+    menu.innerHTML = cats.map(c => {
+      const list = items.filter(i => i.cat === c.id);
+      return `
+        <div class="group" data-group="${esc(c.id)}">
+          <h2 class="group-title">${esc(L(c, 'name'))} <span>${list.length}</span></h2>
+          <div class="grid">${list.map(card).join('')}</div>
         </div>`;
     }).join('');
   }
@@ -245,7 +461,7 @@
     cartBar.innerHTML = `
       <span class="cart-bar-left">
         <span class="cart-bar-count">${count}</span>
-        Перейти к заказу
+        ${T('go_to_order')}
       </span>
       <b>${fmt(orderTotal())}</b>`;
   }
@@ -254,6 +470,47 @@
     document.querySelectorAll('.slot').forEach(el => {
       el.innerHTML = control(el.dataset.slot, el.dataset.variant);
     });
+  }
+
+  // ───────── подсветка раздела при прокрутке
+
+  let spyLockUntil = 0;   // во время прокрутки по нажатию на раздел подсветку не трогаем
+  let spyFrame = 0;
+
+  function updateSpy() {
+    if (state.search.open || Date.now() < spyLockUntil) return;
+    const groups = [...document.querySelectorAll('#menu .group[data-group]')];
+    if (!groups.length) return;
+    const line = tabsWrap.getBoundingClientRect().bottom + 24;
+    let current = groups[0].dataset.group;
+    for (const g of groups) {
+      if (g.getBoundingClientRect().top <= line) current = g.dataset.group;
+      else break;
+    }
+    // докрутили до конца страницы — последний раздел, даже если он короткий
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+      current = groups[groups.length - 1].dataset.group;
+    }
+    setSpy(current);
+  }
+
+  window.addEventListener('scroll', () => {
+    if (spyFrame) return;
+    spyFrame = requestAnimationFrame(() => { spyFrame = 0; updateSpy(); });
+  }, { passive: true });
+
+  function scrollToGroup(id) {
+    const group = [...document.querySelectorAll('#menu .group[data-group]')].find(g => g.dataset.group === id);
+    if (!group) return;
+    const top = group.getBoundingClientRect().top + window.scrollY - tabsWrap.offsetHeight - 8;
+    setSpy(id);
+    spyLockUntil = Date.now() + 900;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
+
+  function scrollToMenuTop() {
+    const top = $('#menu').getBoundingClientRect().top + window.scrollY - tabsWrap.offsetHeight - 8;
+    if (window.scrollY > top) window.scrollTo({ top });
   }
 
   // ───────── рекомендации: какие разделы к чему подходят — в data/categories.json (pairs_with)
@@ -270,28 +527,56 @@
 
   // ───────── окно позиции. Блок создаётся только если для него есть данные (не null)
 
+  function modsBlock(item, sel) {
+    if (!item.mods.length) return '';
+    return `
+      <div class="mods">
+        ${item.mods.map(g => `
+          <div class="mod-group">
+            <div class="mod-head">
+              <h3>${esc(L(g, 'name'))}</h3>
+              ${g.type === 'multi' && g.max ? `<small>${T('pick_up_to', { n: g.max })}</small>` : ''}
+            </div>
+            <div class="mod-options" role="${g.type === 'single' ? 'radiogroup' : 'group'}" aria-label="${esc(L(g, 'name'))}">
+              ${g.options.map(o => {
+                const on = (sel[g.id] || []).includes(o.id);
+                return `
+                  <button type="button" class="mod ${on ? 'active' : ''}" data-mod="${esc(`${g.id}|${o.id}`)}"
+                          role="${g.type === 'single' ? 'radio' : 'checkbox'}" aria-checked="${on}">
+                    <span>${esc(L(o, 'name'))}</span>${o.price ? `<small>+${fmt(o.price)}</small>` : ''}
+                  </button>`;
+              }).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
   function productView(entry) {
     const item = BY_ID[entry.id];
     const size = item.sizes[entry.size] ? entry.size : 0;
+    const sel = entry.sel || (entry.sel = defaultSel(item));
     const v = item.sizes[size];
     const n = v.nutrition;
     const drink = isDrink(item);
     const recs = recommendationsFor(item);
-    const r = x => String(x).replace('.', ',');
+    const r = x => String(x).replace('.', I18N.lang === 'en' ? '.' : ',');
+    const desc = L(item, 'desc');
+    const ing = L(item, 'ing') || [];
+    const tags = itemTags(item);
 
     const meta = [
       v.amount && esc(v.amount),
-      item.prep !== null && `~${item.prep} мин`,
-      n && n.kcal !== null && `${r(n.kcal)} ккал`,
+      item.prep !== null && T('min', { n: item.prep }),
+      n && n.kcal !== null && T('kcal', { n: r(n.kcal) }),
     ].filter(Boolean);
 
-    const nutri = n ? [[n.kcal, 'ккал'], [n.p, 'белки, г'], [n.f, 'жиры, г'], [n.c, 'углеводы, г']]
+    const nutri = n ? [[n.kcal, T('kcal_short')], [n.p, T('proteins')], [n.f, T('fats')], [n.c, T('carbs')]]
       .filter(([x]) => x !== null) : [];
 
     const facts = [
-      v.amount && [drink ? 'Объём' : 'Вес', esc(v.amount)],
-      item.sizes.length > 1 && item.sizes.every(s => s.amount) && ['Варианты', item.sizes.map(s => esc(s.amount)).join(' / ')],
-      item.prep !== null && ['Время приготовления', `~${item.prep} мин`],
+      v.amount && [drink ? T('volume') : T('weight'), esc(v.amount)],
+      item.sizes.length > 1 && item.sizes.every(s => s.amount) && [T('variants'), item.sizes.map(s => esc(s.amount)).join(' / ')],
+      item.prep !== null && [T('prep_time'), T('min', { n: item.prep })],
     ].filter(Boolean);
 
     return `
@@ -299,33 +584,39 @@
         <div class="pm-hero">${pic(item, 'xl')}</div>
 
         <div class="pm-body">
-          <h2 class="pm-title">${esc(item.name)}</h2>
+          <div class="pm-title-row">
+            <h2 class="pm-title">${esc(L(item, 'name'))}</h2>
+            ${favButton(item, 'big')}
+          </div>
+          ${tags.length ? `<div class="pm-tags">${tags.map(t => tagChip(t)).join('')}</div>` : ''}
           ${meta.length ? `<div class="pm-meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>` : ''}
 
           ${item.sizes.length > 1 ? `
-            <div class="sizes" role="radiogroup" aria-label="Вариант">
+            <div class="sizes" role="radiogroup" aria-label="${esc(T('variants'))}">
               ${item.sizes.map((s, i) => `
                 <button type="button" class="size ${i === size ? 'active' : ''}" data-size="${i}" role="radio" aria-checked="${i === size}">
-                  <b>${esc(s.label)}</b><small>${fmt(s.price)}</small>
+                  <b>${esc(sizeLabel(s, i))}</b><small>${fmt(s.price)}</small>
                 </button>`).join('')}
             </div>` : ''}
 
+          ${modsBlock(item, sel)}
+
           <div class="pm-buy">
-            <div class="pm-price"><b>${fmt(v.price)}</b></div>
-            ${slot(keyOf(item.id, size), 'big')}
+            <div class="pm-price"><b>${fmt(unitPrice(item, size, sel))}</b></div>
+            ${slot(keyOf(item.id, size, modsKey(item, sel)), 'big')}
           </div>
 
-          ${item.desc ? `<p class="pm-desc">${esc(item.desc)}</p>` : ''}
+          ${desc ? `<p class="pm-desc">${esc(desc)}</p>` : ''}
 
           ${nutri.length ? `
-            <h3 class="pm-h">Пищевая ценность ${v.amount ? `<small>на ${esc(v.amount)}</small>` : ''}</h3>
+            <h3 class="pm-h">${T('nutrition')} ${v.amount ? `<small>${esc(T('per', { a: v.amount }))}</small>` : ''}</h3>
             <div class="nutri" style="--cols:${nutri.length}">
               ${nutri.map(([x, label]) => `<div><b>${r(x)}</b><small>${label}</small></div>`).join('')}
             </div>` : ''}
 
-          ${item.ing.length ? `
-            <h3 class="pm-h">Состав</h3>
-            <div class="chips">${item.ing.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+          ${ing.length ? `
+            <h3 class="pm-h">${T('ingredients')}</h3>
+            <div class="chips">${ing.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
 
           ${facts.length ? `
             <dl class="facts">
@@ -333,9 +624,89 @@
             </dl>` : ''}
 
           ${recs.length ? `
-            <h3 class="pm-h rec-title">${drink || catOf(item).kind === 'set' ? 'К этому напитку возьмите' : 'К этому подойдёт'}</h3>
+            <h3 class="pm-h rec-title">${drink || catOf(item).kind === 'set' ? T('recs_drink') : T('recs_food')}</h3>
             <div class="rec-row">${recs.map(card).join('')}</div>` : ''}
         </div>
+      </div>`;
+  }
+
+  // ───────── окно фильтров (черновик в entry.draft, применяется кнопкой «Показать»)
+
+  function filtersView(entry) {
+    const d = entry.draft;
+    const used = new Set(MENU.items.flatMap(i => i.tags));
+    const tags = Object.values(TAGS).filter(t => used.has(t.id));
+    const b = priceBounds();
+    const value = d.max ?? b.max;
+    const count = MENU.items.filter(i => passFilters(i, d)).length;
+
+    return `
+      <div class="om">
+        <h2 class="om-title">${T('filters')}</h2>
+
+        ${tags.length ? `
+          <h3 class="pm-h">${T('filter_tags')}</h3>
+          <div class="mod-options">
+            ${tags.map(t => {
+              const on = d.tags.includes(t.id);
+              return `<button type="button" class="mod ${on ? 'active' : ''}" data-filter-tag="${esc(t.id)}" role="checkbox" aria-checked="${on}">
+                        <span>${esc(t.emoji)} ${esc(L(t, 'name'))}</span></button>`;
+            }).join('')}
+          </div>` : ''}
+
+        ${b.max > b.min ? `
+          <h3 class="pm-h">${d.max === null ? T('any_price') : T('price_upto', { p: fmt(d.max) })}</h3>
+          <input class="range" id="filterPrice" type="range" min="${b.min}" max="${b.max}" step="${b.step}" value="${value}"
+                 aria-label="${esc(T('price_upto', { p: '' }))}">
+          <div class="range-scale"><span>${fmt(b.min)}</span><span>${fmt(b.max)}</span></div>` : ''}
+
+        <div class="pay-wrap filter-actions">
+          <button class="btn-ghost" type="button" data-filters-clear>${T('reset')}</button>
+          <button class="btn-primary" type="button" data-filters-apply>${T('show_n', { n: count })}</button>
+        </div>
+      </div>`;
+  }
+
+  // ───────── профиль гостя: имя, избранное, история заказов
+
+  function profileView() {
+    const favs = state.favs.map(id => BY_ID[id]).filter(Boolean);
+    return `
+      <div class="om">
+        <h2 class="om-title">${T('profile')}</h2>
+        <p class="hint">${T('profile_hint')}</p>
+
+        <label class="field-label" for="guestName">${T('guest_name')}</label>
+        <input class="text-input" id="guestName" type="text" maxlength="40" autocomplete="given-name"
+               value="${esc(guestName())}" placeholder="${esc(T('guest_name_ph'))}">
+
+        <h3 class="pm-h">${T('favorites')}</h3>
+        ${favs.length ? `<div class="rec-row">${favs.map(card).join('')}</div>`
+          : `<p class="hint">${T('favorites_empty')}</p>`}
+
+        <h3 class="pm-h">${T('history')}</h3>
+        ${state.history.length ? `
+          <ul class="history">
+            ${state.history.map((h, i) => {
+              const names = h.lines.map(l => {
+                const { item } = parseKey(l.key);
+                return `${item ? L(item, 'name') : l.name}${l.qty > 1 ? ` × ${l.qty}` : ''}`;
+              }).join(', ');
+              const where = h.dineIn === 'togo' ? T('togo') : h.table ? T('hall_table', { n: h.table }) : T('hall');
+              return `
+                <li class="history-item">
+                  <div class="history-head">
+                    <b>${T('order_no', { n: h.no })}</b>
+                    <small>${esc(I18N.formatDateTime(new Date(h.at)))}</small>
+                  </div>
+                  <p>${esc(names)}</p>
+                  <div class="history-foot">
+                    <small>${where} · <b>${fmt(h.total)}</b></small>
+                    <button class="btn-ghost small" type="button" data-repeat="${i}">↻ ${T('repeat')}</button>
+                  </div>
+                </li>`;
+            }).join('')}
+          </ul>` : `<p class="hint">${T('history_empty')}</p>`}
       </div>`;
   }
 
@@ -351,15 +722,14 @@
   }
 
   const clock = mins => new Date(Date.now() + mins * 60000)
-    .toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    .toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit' });
 
   function timeOptions() {
     const est = estimateMinutes();
-    const opts = [{ id: 'asap', title: 'Побыстрее', sub: `~${est} мин · к ${clock(est)}` }];
-    [[30, 'Через 30 мин'], [60, 'Через 1 час'], [90, 'Через 1,5 часа'], [120, 'Через 2 часа']]
-      .forEach(([m, title]) => {
-        if (m >= est + 5) opts.push({ id: String(m), title, sub: `к ${clock(m)}` });
-      });
+    const opts = [{ id: 'asap', title: T('asap'), sub: `${T('min', { n: est })} · ${T('at', { t: clock(est) })}` }];
+    [30, 60, 90, 120].forEach(m => {
+      if (m >= est + 5) opts.push({ id: String(m), title: T(`in_${m}`), sub: T('at', { t: clock(m) }) });
+    });
     return opts;
   }
 
@@ -368,12 +738,12 @@
     if (!lines.length) {
       return `
         <div class="om">
-          <h2 class="om-title">Ваш заказ</h2>
+          <h2 class="om-title">${T('your_order')}</h2>
           <div class="empty">
             <div class="empty-emoji">🧾</div>
-            <p>В заказе пока пусто</p>
-            <small>Добавьте что-нибудь вкусное из меню</small>
-            <button class="btn-primary" type="button" data-close>Вернуться в меню</button>
+            <p>${T('order_empty')}</p>
+            <small>${T('order_empty_hint')}</small>
+            <button class="btn-primary" type="button" data-close>${T('back_to_menu')}</button>
           </div>
         </div>`;
     }
@@ -385,56 +755,70 @@
     return `
       <div class="om">
         <div class="om-head">
-          <h2 class="om-title">Ваш заказ</h2>
-          <button class="link" type="button" data-clear>Очистить</button>
+          <h2 class="om-title">${T('your_order')}</h2>
+          <button class="link" type="button" data-clear>${T('clear')}</button>
         </div>
 
         <ul class="lines">
           ${lines.map(l => {
             const amount = l.item.sizes[l.size].amount;
+            const mods = modsLabel(l.item, l.sel);
             return `
               <li class="line">
-                <div class="line-pic" data-open="${esc(l.item.id)}" data-open-size="${l.size}">${pic(l.item)}</div>
-                <div class="line-info" data-open="${esc(l.item.id)}" data-open-size="${l.size}">
-                  <b>${esc(l.item.name)}</b>
+                <div class="line-pic" data-open-key="${esc(l.key)}">${pic(l.item)}</div>
+                <div class="line-info" data-open-key="${esc(l.key)}">
+                  <b>${esc(L(l.item, 'name'))}</b>
                   ${amount ? `<small>${esc(amount)}</small>` : ''}
-                  <small>${fmt(priceOf(l.item, l.size))} × ${l.qty}</small>
+                  ${mods ? `<small class="line-mods">${esc(mods)}</small>` : ''}
+                  <small>${fmt(l.unit)} × ${l.qty}</small>
                 </div>
                 <div class="line-right">
-                  <b>${fmt(priceOf(l.item, l.size) * l.qty)}</b>
+                  <b>${fmt(l.unit * l.qty)}</b>
                   ${control(l.key, 'mini')}
                 </div>
               </li>`;
           }).join('')}
         </ul>
 
-        <h3 class="pm-h">Где будете есть?</h3>
+        <h3 class="pm-h">${T('where')}</h3>
         <div class="segmented">
-          <button type="button" class="${state.dineIn === 'hall' ? 'active' : ''}" data-dine="hall">🪑 В зале</button>
-          <button type="button" class="${state.dineIn === 'togo' ? 'active' : ''}" data-dine="togo">🛍️ С собой</button>
+          <button type="button" class="${state.dineIn === 'hall' ? 'active' : ''}" data-dine="hall">
+            ${state.table ? esc(T('hall_table', { n: state.table })) : T('hall')}</button>
+          <button type="button" class="${state.dineIn === 'togo' ? 'active' : ''}" data-dine="togo">${T('togo')}</button>
         </div>
 
-        <h3 class="pm-h">Когда приготовить?</h3>
+        <h3 class="pm-h">${T('when')}</h3>
         <div class="times">
           ${opts.map(o => `
             <button type="button" class="time ${o.id === state.when ? 'active' : ''}" data-when="${o.id}">
               <b>${o.title}</b><small>${o.sub}</small>
             </button>`).join('')}
         </div>
-        <p class="hint">Время рассчитано по самой долгой позиции в заказе и загрузке кухни.</p>
+        <p class="hint">${T('time_hint')}</p>
+
+        <h3 class="pm-h">${T('for_name')}</h3>
+        <input class="text-input" id="orderName" type="text" maxlength="40" autocomplete="given-name"
+               value="${esc(guestName())}" placeholder="${esc(T('guest_name_ph'))}">
+
+        <h3 class="pm-h">${T('comment')}</h3>
+        <textarea class="comment" id="orderComment" rows="2" maxlength="300" placeholder="${esc(T('comment_ph'))}">${esc(state.comment)}</textarea>
 
         <div class="summary">
-          <div><span>${count} ${plural(count, 'позиция', 'позиции', 'позиций')}</span><span>${fmt(orderTotal())}</span></div>
-          <div class="total"><span>Итого</span><span>${fmt(orderTotal())}</span></div>
+          <div><span>${I18N.items(count)}</span><span>${fmt(orderTotal())}</span></div>
+          <div class="total"><span>${T('total')}</span><span>${fmt(orderTotal())}</span></div>
         </div>
 
         <div class="pay-wrap">
-          <button class="btn-primary pay" type="button">Оплатить · ${fmt(orderTotal())}</button>
+          <button class="btn-primary pay" type="button" data-pay>${T('pay')} · ${fmt(orderTotal())}</button>
         </div>
       </div>`;
   }
 
   // ───────── модальные окна (со стеком и кнопкой «Назад» браузера)
+
+  const VIEWS = { product: productView, order: orderView, filters: filtersView, profile: profileView };
+  const viewLabel = top => (top.type === 'product' ? L(BY_ID[top.id], 'name')
+    : T({ order: 'your_order', filters: 'filters', profile: 'profile' }[top.type]));
 
   function renderModal(resetScroll) {
     const top = state.stack[state.stack.length - 1];
@@ -449,16 +833,16 @@
     const prevScroll = scroller && !resetScroll ? scroller.scrollTop : 0;
     const canBack = state.stack.length > 1;
 
-    sheet.className = `sheet ${top.type}`;
-    sheet.setAttribute('aria-label', top.type === 'order' ? 'Ваш заказ' : BY_ID[top.id].name);
+    sheet.className = `sheet ${top.type === 'product' ? 'product' : 'order'}`;
+    sheet.setAttribute('aria-label', viewLabel(top));
     sheet.innerHTML = `
       <div class="sheet-controls">
-        ${canBack ? `<button class="round-btn" type="button" data-back aria-label="Назад">
+        ${canBack ? `<button class="round-btn" type="button" data-back aria-label="${esc(T('back'))}">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>` : '<span></span>'}
-        <button class="round-btn" type="button" data-close aria-label="Закрыть">
+        <button class="round-btn" type="button" data-close aria-label="${esc(T('close'))}">
           <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
-      <div class="sheet-scroll">${top.type === 'order' ? orderView() : productView(top)}</div>`;
+      <div class="sheet-scroll">${VIEWS[top.type](top)}</div>`;
 
     sheet.querySelector('.sheet-scroll').scrollTop = prevScroll;
     if (resetScroll) {
@@ -495,10 +879,12 @@
     }
   });
 
+  const topModal = () => state.stack[state.stack.length - 1];
+
   // ───────── изменение заказа
 
   function changeQty(key, delta) {
-    const q = Math.max(0, qtyOf(key) + delta);
+    const q = Math.max(0, Math.min(999, qtyOf(key) + delta));
     if (q) state.order[key] = q; else delete state.order[key];
     saveOrder();
     updateSlots();
@@ -508,45 +894,195 @@
       void cartBar.offsetWidth;
       cartBar.classList.add('bump');
     }
-    const top = state.stack[state.stack.length - 1];
+    const top = topModal();
     if (top && top.type === 'order') renderModal(false);
+  }
+
+  function toggleMod(entry, gid, oid) {
+    const item = BY_ID[entry.id];
+    const g = item.mods.find(x => x.id === gid);
+    if (!g) return;
+    const cur = entry.sel[gid] || [];
+    if (g.type === 'single') {
+      entry.sel[gid] = [oid];
+    } else if (cur.includes(oid)) {
+      entry.sel[gid] = cur.filter(x => x !== oid);
+    } else {
+      // больше максимума — убираем самый ранний выбор
+      entry.sel[gid] = [...cur, oid].slice(g.max ? -g.max : 0);
+    }
+  }
+
+  function toggleFav(id) {
+    state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id];
+    writeStore(storeKey('favs'), state.favs);
+    const on = state.favs.includes(id);
+    document.querySelectorAll('.fav-btn').forEach(b => {
+      if (b.dataset.fav !== id) return;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', T(on ? 'fav_remove' : 'fav_add'));
+    });
+  }
+
+  // «Оплатить»: настоящей оплаты пока нет — заказ сохраняется в историю, корзина очищается
+  function placeOrder() {
+    const lines = orderLines();
+    if (!lines.length) return;
+    const no = (state.history[0] ? state.history[0].no : 0) + 1;
+    state.history.unshift({
+      no,
+      at: Date.now(),
+      lines: lines.map(l => ({ key: l.key, qty: l.qty, name: l.item.name, unit: l.unit })),
+      total: orderTotal(),
+      dineIn: state.dineIn,
+      table: state.dineIn === 'hall' ? state.table : null,
+      when: state.when,
+      name: guestName() || null,
+      comment: state.comment || null,
+    });
+    state.history = state.history.slice(0, 30);
+    writeStore(storeKey('history'), state.history);
+
+    state.order = {};
+    state.comment = '';
+    saveOrder();
+    saveComment();
+    updateSlots();
+    renderCartBar();
+    closeAll();
+    toast(T('order_placed', { n: no }));
+  }
+
+  function repeatOrder(index) {
+    const h = state.history[index];
+    if (!h) return;
+    let added = 0;
+    let missing = false;
+    for (const l of h.lines) {
+      const { item, size } = parseKey(l.key);
+      if (!item || !item.sizes[size]) { missing = true; continue; }
+      state.order[l.key] = Math.min(999, qtyOf(l.key) + l.qty);
+      added += l.qty;
+    }
+    saveOrder();
+    updateSlots();
+    renderCartBar();
+    toast(missing ? `${T('repeat_added', { n: added })}. ${T('repeat_missing')}` : T('repeat_added', { n: added }));
+    if (added) pushModal({ type: 'order' });
+  }
+
+  // ───────── язык
+
+  function closeLangMenu() {
+    const menu = document.querySelector('.lang-menu');
+    if (menu && !menu.hidden) {
+      menu.hidden = true;
+      document.querySelector('[data-lang-toggle]').setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function setLang(id) {
+    I18N.set(id);
+    if (MENU) {
+      money = makeMoney(MENU.currency);
+      renderMenuPage();
+      if (state.stack.length) renderModal(false);
+    } else if (state.picker) {
+      showPicker();
+    } else if (state.error) {
+      renderError(state.error);
+    }
   }
 
   // ───────── события
 
   document.addEventListener('click', e => {
+    if (!e.target.closest('.lang')) closeLangMenu();
+
+    const langT = e.target.closest('[data-lang-toggle],[data-lang]');
+    if (langT) {
+      if (langT.dataset.lang) { closeLangMenu(); setLang(langT.dataset.lang); return; }
+      const menu = langT.parentElement.querySelector('.lang-menu');
+      menu.hidden = !menu.hidden;
+      langT.setAttribute('aria-expanded', String(!menu.hidden));
+      return;
+    }
+
     if (!MENU) return;
     if (e.target === overlay) { closeAll(); return; }
 
-    const t = e.target.closest(
-      '[data-add],[data-inc],[data-dec],[data-open],[data-cat],[data-size],[data-close],[data-back],[data-order],[data-clear],[data-dine],[data-when]'
-    );
+    const t = e.target.closest([
+      '[data-fav]', '[data-add]', '[data-inc]', '[data-dec]', '[data-open]', '[data-open-key]', '[data-cat]',
+      '[data-size]', '[data-mod]', '[data-close]', '[data-back]', '[data-order]', '[data-clear]', '[data-dine]',
+      '[data-when]', '[data-search-open]', '[data-search-close]', '[data-filters-open]', '[data-filter-tag]',
+      '[data-filters-apply]', '[data-filters-clear]', '[data-filters-reset]', '[data-profile]', '[data-pay]', '[data-repeat]',
+    ].join(','));
     if (!t) return;
     const d = t.dataset;
 
-    if (d.add) changeQty(d.add, 1);
+    if (d.fav) toggleFav(d.fav);
+    else if (d.add) changeQty(d.add, 1);
     else if (d.inc) changeQty(d.inc, 1);
     else if (d.dec) changeQty(d.dec, -1);
-    else if (d.open) pushModal({ type: 'product', id: d.open, size: Number(d.openSize) || 0 });
-    else if (d.cat) {
-      state.cat = d.cat;
-      renderTabs();
-      renderMenu();
-      const nav = $('#tabsWrap');
-      const top = $('#menu').getBoundingClientRect().top + window.scrollY - nav.offsetHeight - 8;
-      if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
+    else if (d.open) pushModal({ type: 'product', id: d.open, size: 0 });
+    else if (d.openKey) {
+      const { item, size, sel } = parseKey(d.openKey);
+      if (item) pushModal({ type: 'product', id: item.id, size, sel });
     }
+    else if (d.cat) scrollToGroup(d.cat);
     else if (d.size !== undefined) {
-      const top = state.stack[state.stack.length - 1];
-      top.size = Number(d.size);
+      topModal().size = Number(d.size);
       renderModal(false);
     }
+    else if (d.mod) {
+      const [gid, oid] = d.mod.split('|');
+      toggleMod(topModal(), gid, oid);
+      renderModal(false);
+    }
+    else if (d.searchOpen !== undefined) {
+      state.search.open = true;
+      renderNav();
+      scrollToMenuTop();
+      $('#searchInput').focus();
+    }
+    else if (d.searchClose !== undefined) {
+      state.search = { open: false, q: '' };
+      renderNav();
+      renderMenu();
+      updateSpy();
+    }
+    else if (d.filtersOpen !== undefined) {
+      pushModal({ type: 'filters', draft: { tags: [...state.filters.tags], max: state.filters.max } });
+    }
+    else if (d.filterTag) {
+      const draft = topModal().draft;
+      draft.tags = draft.tags.includes(d.filterTag) ? draft.tags.filter(x => x !== d.filterTag) : [...draft.tags, d.filterTag];
+      renderModal(false);
+    }
+    else if (d.filtersClear !== undefined) {
+      topModal().draft = { tags: [], max: null };
+      renderModal(false);
+    }
+    else if (d.filtersApply !== undefined || d.filtersReset !== undefined) {
+      state.filters = d.filtersApply !== undefined ? topModal().draft : { tags: [], max: null };
+      if (d.filtersApply !== undefined) closeAll();
+      renderNav();
+      renderMenu();
+      scrollToMenuTop();
+      updateSpy();
+    }
+    else if (d.profile !== undefined) pushModal({ type: 'profile' });
+    else if (d.pay !== undefined) placeOrder();
+    else if (d.repeat !== undefined) repeatOrder(Number(d.repeat));
     else if (d.close !== undefined) closeAll();
     else if (d.back !== undefined) history.back();
     else if (d.order !== undefined) pushModal({ type: 'order' });
     else if (d.clear !== undefined) {
       state.order = {};
+      state.comment = '';
       saveOrder();
+      saveComment();
       updateSlots();
       renderCartBar();
       renderModal(false);
@@ -555,17 +1091,45 @@
     else if (d.when) { state.when = d.when; renderModal(false); }
   });
 
+  document.addEventListener('input', e => {
+    const id = e.target.id;
+    if (id === 'searchInput') {
+      state.search.q = e.target.value;
+      renderMenu();
+    } else if (id === 'orderComment') {
+      state.comment = e.target.value;
+      saveComment();
+    } else if (id === 'guestName' || id === 'orderName') {
+      writeStore('guest:name', e.target.value.trim());
+    } else if (id === 'filterPrice') {
+      const b = priceBounds();
+      const v = Number(e.target.value);
+      topModal().draft.max = v >= b.max ? null : v;
+      // перерисовываем только подписи, чтобы ползунок не терял фокус
+      const draft = topModal().draft;
+      sheet.querySelector('.om .pm-h:last-of-type').textContent =
+        draft.max === null ? T('any_price') : T('price_upto', { p: fmt(draft.max) });
+      sheet.querySelector('[data-filters-apply]').textContent =
+        T('show_n', { n: MENU.items.filter(i => passFilters(i, draft)).length });
+    }
+  });
+
   // карточки открываются и с клавиатуры
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && state.stack.length) { closeAll(); return; }
+    if (e.key === 'Escape') {
+      closeLangMenu();
+      if (state.stack.length) { closeAll(); return; }
+      if (state.search.open) { $('[data-search-close]').click(); return; }
+    }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-open][tabindex]')) {
       e.preventDefault();
       e.target.click();
     }
+    // Enter в поиске — убрать клавиатуру на телефоне, чтобы были видны результаты
+    if (e.key === 'Enter' && e.target.id === 'searchInput') e.target.blur();
   });
 
   // тень у ленты разделов, когда она прилипла к верху
-  const tabsWrap = $('#tabsWrap');
   new IntersectionObserver(([en]) => tabsWrap.classList.toggle('stuck', en.intersectionRatio < 1),
     { threshold: [1], rootMargin: '-1px 0px 0px 0px' }).observe(tabsWrap);
 
@@ -573,7 +1137,7 @@
 
   function showScreen(html) {
     $('#today').hidden = true;
-    $('#tabsWrap').hidden = true;
+    tabsWrap.hidden = true;
     $('#menu').hidden = true;
     const screen = $('#screen');
     screen.hidden = false;
@@ -581,29 +1145,32 @@
   }
 
   async function renderPicker(cafes) {
-    renderHeader(null, false);
+    // подгружаем меню, чтобы показать число позиций
+    const menus = await Promise.allSettled(cafes.map(c => API.getMenu(c, STYLES)));
+    state.picker = { cafes, menus };
+    showPicker();
+  }
 
+  function showPicker() {
+    const { cafes, menus } = state.picker;
+    renderHeader(null, false);
     if (!cafes.length) {
       showScreen(`
         <div class="empty">
-          <p>Кофеен пока нет</p>
-          <small>Добавьте кофейню в data/cafes.json</small>
+          <p>${T('no_cafes')}</p>
+          <small>${T('no_cafes_hint')}</small>
         </div>`);
       return;
     }
-
-    // подгружаем меню, чтобы показать число позиций
-    const menus = await Promise.allSettled(cafes.map(c => API.getMenu(c, STYLES)));
     showScreen(`
-      <h2 class="screen-title">Выберите кофейню</h2>
+      <h2 class="screen-title">${T('choose_cafe')}</h2>
       <div class="cafes">
         ${cafes.map((c, i) => {
           const res = menus[i];
           const m = res.status === 'fulfilled' ? res.value : null;
           const where = [c.city, c.address].filter(Boolean).join(', ');
           const count = m ? m.items.length : 0;
-          const status = !m ? 'Ошибка в данных меню'
-            : count ? `${count} ${plural(count, 'позиция', 'позиции', 'позиций')}` : 'Меню пока пустое';
+          const status = !m ? T('menu_error') : count ? I18N.items(count) : T('menu_empty');
           return `
             <a class="cafe-card ${m ? '' : 'broken'}" href="?cafe=${encodeURIComponent(c.id)}">
               ${logo(c.logo, c.name, 'cafe-logo')}
@@ -619,12 +1186,14 @@
   }
 
   function renderError(err) {
-    console.error(err);
-    if (BRAND) renderHeader(null, false);
+    if (state.error !== err) console.error(err);
+    state.error = err;
+    BRAND = BRAND || { name: 'Secretbox', logo: null }; // реестр кофеен не загрузился — шапка всё равно нужна (язык)
+    renderHeader(null, false);
     showScreen(`
       <div class="empty error">
         <div class="empty-emoji">⚠️</div>
-        <p>Не получилось загрузить меню</p>
+        <p>${T('load_error')}</p>
         <small>${esc(err.message)}</small>
         ${err.url ? `<code>${esc(err.url)}</code>` : ''}
       </div>`);
@@ -632,35 +1201,60 @@
 
   // ───────── запуск
 
-  function startMenu(canSwitch) {
+  let canSwitchCafe = false;
+
+  function renderMenuPage() {
+    renderHeader(MENU.cafe, canSwitchCafe);
+    renderToday();
+    renderNav();
+    renderMenu();
+    renderCartBar();
+    updateSpy();
+  }
+
+  function startMenu() {
     CATS = Object.fromEntries(MENU.categories.map(c => [c.id, c]));
     BY_ID = Object.fromEntries(MENU.items.map(i => [i.id, i]));
     money = makeMoney(MENU.currency);
-    STORAGE_KEY = `order:${MENU.cafe.id}`;
-    state.order = loadOrder();
+    applyTheme(MENU.cafe);
 
-    renderHeader(MENU.cafe, canSwitch);
-    renderToday();
-    renderTabs();
-    renderMenu();
-    renderCartBar();
+    state.order = loadOrder();
+    const comment = readStore(storeKey('comment'), '');
+    state.comment = typeof comment === 'string' ? comment : '';
+    const favs = readStore(storeKey('favs'), []);
+    state.favs = Array.isArray(favs) ? favs.filter(id => typeof id === 'string') : [];
+    const hist = readStore(storeKey('history'), []);
+    state.history = Array.isArray(hist) ? hist.filter(h => h && Array.isArray(h.lines) && Number.isFinite(h.no)) : [];
+
+    // номер стола из QR-кода: ?table=5 — сразу «в зале»
+    const table = (new URLSearchParams(location.search).get('table') || '').trim();
+    if (/^[\w-]{1,10}$/.test(table)) {
+      state.table = table;
+      state.dineIn = 'hall';
+    }
+
+    renderMenuPage();
   }
 
   async function init() {
     // если страницу обновили с открытым окном — сбрасываем состояние истории
     if (history.state && history.state.depth) history.replaceState(null, '');
+    const loading = $('#menu .loading');
+    if (loading) loading.textContent = T('loading');
 
     try {
-      const [styles, { brand, cafes }] = await Promise.all([API.getStyles(), API.getCafes()]);
+      const [styles, { brand, cafes }, tags] = await Promise.all([API.getStyles(), API.getCafes(), API.getTags()]);
       STYLES = styles;
       BRAND = brand;
+      TAGS = Object.fromEntries(tags.map(t => [t.id, t]));
 
       const wanted = new URLSearchParams(location.search).get('cafe');
       const cafe = cafes.find(c => c.id === wanted) || (cafes.length === 1 ? cafes[0] : null);
       if (!cafe) return renderPicker(cafes);
 
       MENU = await API.getMenu(cafe, styles);
-      startMenu(cafes.length > 1);
+      canSwitchCafe = cafes.length > 1;
+      startMenu();
     } catch (err) {
       renderError(err);
     }

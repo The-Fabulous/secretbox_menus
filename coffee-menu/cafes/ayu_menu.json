@@ -4,25 +4,260 @@
       "id": "coffee",
       "name": "Кофе",
       "icon": "☕",
-      "order": 1
+      "order": 1,
+      "i18n": {
+        "kz": {
+          "name": "Кофе"
+        },
+        "en": {
+          "name": "Coffee"
+        }
+      }
     },
     {
       "id": "tea",
       "name": "Чай",
       "icon": "🍵",
-      "order": 2
+      "order": 2,
+      "i18n": {
+        "kz": {
+          "name": "Шай"
+        },
+        "en": {
+          "name": "Tea"
+        }
+      }
     },
     {
       "id": "cocoa",
       "name": "Какао и шоколад",
       "icon": "🍫",
-      "order": 3
+      "order": 3,
+      "i18n": {
+        "kz": {
+          "name": "Какао және шоколад"
+        },
+        "en": {
+          "name": "Cocoa & Chocolate"
+        }
+      }
     },
     {
       "id": "cold_drinks",
       "name": "Холодные напитки",
       "icon": "🧊",
-      "order": 4
+      "order": 4,
+      "i18n": {
+        "kz": {
+          "name": "Салқын сусындар"
+        },
+        "en": {
+          "name": "Cold drinks"
+        }
+      }
+    }
+  ],
+  "modifier_groups": [
+    {
+      "id": "milk",
+      "name": "Молоко",
+      "type": "single",
+      "applies_to": [
+        "coffee",
+        "cocoa"
+      ],
+      "i18n": {
+        "kz": {
+          "name": "Сүт"
+        },
+        "en": {
+          "name": "Milk"
+        }
+      },
+      "options": [
+        {
+          "id": "regular",
+          "name": "Обычное",
+          "price": 0,
+          "default": true,
+          "i18n": {
+            "kz": {
+              "name": "Кәдімгі"
+            },
+            "en": {
+              "name": "Regular"
+            }
+          }
+        },
+        {
+          "id": "lactose_free",
+          "name": "Безлактозное",
+          "price": 200,
+          "i18n": {
+            "kz": {
+              "name": "Лактозасыз"
+            },
+            "en": {
+              "name": "Lactose-free"
+            }
+          }
+        },
+        {
+          "id": "oat",
+          "name": "Овсяное",
+          "price": 300,
+          "i18n": {
+            "kz": {
+              "name": "Сұлы сүті"
+            },
+            "en": {
+              "name": "Oat"
+            }
+          }
+        },
+        {
+          "id": "coconut",
+          "name": "Кокосовое",
+          "price": 300,
+          "i18n": {
+            "kz": {
+              "name": "Кокос сүті"
+            },
+            "en": {
+              "name": "Coconut"
+            }
+          }
+        },
+        {
+          "id": "almond",
+          "name": "Миндальное",
+          "price": 300,
+          "i18n": {
+            "kz": {
+              "name": "Бадам сүті"
+            },
+            "en": {
+              "name": "Almond"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "syrup",
+      "name": "Сироп",
+      "type": "multi",
+      "max": 2,
+      "applies_to": [
+        "coffee",
+        "cocoa"
+      ],
+      "i18n": {
+        "kz": {
+          "name": "Шәрбат"
+        },
+        "en": {
+          "name": "Syrup"
+        }
+      },
+      "options": [
+        {
+          "id": "vanilla",
+          "name": "Ванильный",
+          "price": 200,
+          "i18n": {
+            "kz": {
+              "name": "Ваниль"
+            },
+            "en": {
+              "name": "Vanilla"
+            }
+          }
+        },
+        {
+          "id": "caramel",
+          "name": "Карамельный",
+          "price": 200,
+          "i18n": {
+            "kz": {
+              "name": "Карамель"
+            },
+            "en": {
+              "name": "Caramel"
+            }
+          }
+        },
+        {
+          "id": "hazelnut",
+          "name": "Лесной орех",
+          "price": 200,
+          "i18n": {
+            "kz": {
+              "name": "Орман жаңғағы"
+            },
+            "en": {
+              "name": "Hazelnut"
+            }
+          }
+        },
+        {
+          "id": "coconut",
+          "name": "Кокосовый",
+          "price": 200,
+          "i18n": {
+            "kz": {
+              "name": "Кокос"
+            },
+            "en": {
+              "name": "Coconut"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "extra",
+      "name": "Дополнительно",
+      "type": "multi",
+      "applies_to": [
+        "coffee"
+      ],
+      "i18n": {
+        "kz": {
+          "name": "Қосымша"
+        },
+        "en": {
+          "name": "Extras"
+        }
+      },
+      "options": [
+        {
+          "id": "shot",
+          "name": "Доп. шот эспрессо",
+          "price": 350,
+          "i18n": {
+            "kz": {
+              "name": "Қосымша эспрессо шоты"
+            },
+            "en": {
+              "name": "Extra espresso shot"
+            }
+          }
+        },
+        {
+          "id": "cinnamon",
+          "name": "Корица",
+          "price": 0,
+          "i18n": {
+            "kz": {
+              "name": "Даршын"
+            },
+            "en": {
+              "name": "Cinnamon"
+            }
+          }
+        }
+      ]
     }
   ],
   "items": [
@@ -312,6 +547,9 @@
           "price": 700,
           "nutrition": null
         }
+      ],
+      "modifier_group_ids": [
+        "extra"
       ]
     },
     {
@@ -420,7 +658,8 @@
           "price": 350,
           "nutrition": null
         }
-      ]
+      ],
+      "modifier_group_ids": []
     },
     {
       "id": "item_kakao",
@@ -672,6 +911,11 @@
           "price": 1190,
           "nutrition": null
         }
+      ],
+      "modifier_group_ids": [
+        "milk",
+        "syrup",
+        "extra"
       ]
     },
     {
@@ -762,6 +1006,10 @@
           "price": 1300,
           "nutrition": null
         }
+      ],
+      "modifier_group_ids": [
+        "milk",
+        "syrup"
       ]
     },
     {

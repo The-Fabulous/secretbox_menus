@@ -1,16 +1,16 @@
 {
   "_comment": "Общие настройки разделов для всех кофеен: цвет карточек, тип (для подписи «Напиток дня»/«Блюдо дня»), что рекомендовать и время приготовления по умолчанию. Название и иконку раздела задаёт каждая кофейня в своём файле меню.",
   "categories": [
-    { "id": "coffee",      "name": "Кофе",             "emoji": "☕", "kind": "drink", "colors": ["#f6e7d8", "#d6a679"], "pairs_with": ["desserts", "pastry"],          "default_prep_min": 4 },
-    { "id": "tea",         "name": "Чай",              "emoji": "🍵", "kind": "drink", "colors": ["#eaf4e2", "#a9d18e"], "pairs_with": ["desserts", "pastry"],          "default_prep_min": 5 },
-    { "id": "cocoa",       "name": "Какао и шоколад",  "emoji": "🍫", "kind": "drink", "colors": ["#f3e2d7", "#bf8a63"], "pairs_with": ["desserts", "pastry"],          "default_prep_min": 4 },
-    { "id": "cold_drinks", "name": "Холодные напитки", "emoji": "🧊", "kind": "drink", "colors": ["#e2f3f9", "#94d0e6"], "pairs_with": ["desserts", "pastry", "snacks"], "default_prep_min": 4 },
-    { "id": "breakfast",   "name": "Завтраки",         "emoji": "🍳", "kind": "food",  "colors": ["#fff3d9", "#f5c25e"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 10 },
-    { "id": "hot_meals",   "name": "Горячие блюда",    "emoji": "🍲", "kind": "food",  "colors": ["#fde6d8", "#ee956a"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 15 },
-    { "id": "snacks",      "name": "Закуски",          "emoji": "🥪", "kind": "food",  "colors": ["#f7eedc", "#ddb77a"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 8 },
-    { "id": "desserts",    "name": "Десерты",          "emoji": "🍰", "kind": "sweet", "colors": ["#fde4ec", "#ee9fba"], "pairs_with": ["coffee", "tea", "cocoa"],       "default_prep_min": 2 },
-    { "id": "pastry",      "name": "Выпечка",          "emoji": "🥐", "kind": "sweet", "colors": ["#fcecd5", "#e4ae6c"], "pairs_with": ["coffee", "tea", "cocoa"],       "default_prep_min": 3 },
-    { "id": "combo",       "name": "Комбо",            "emoji": "✨", "kind": "set",   "colors": ["#efe6fc", "#b49ced"], "pairs_with": ["desserts", "pastry"],          "default_prep_min": 10 },
-    { "id": "other",       "name": "Другое",           "emoji": "🍽️", "kind": "other", "colors": ["#f1ebe4", "#c9b6a3"], "pairs_with": [],                                "default_prep_min": 5 }
+    {"id": "coffee", "name": "Кофе", "emoji": "☕", "kind": "drink", "colors": ["#f6e7d8", "#d6a679"], "pairs_with": ["desserts", "pastry"], "default_prep_min": 4, "i18n": {"kz": {"name": "Кофе"}, "en": {"name": "Coffee"}}},
+    {"id": "tea", "name": "Чай", "emoji": "🍵", "kind": "drink", "colors": ["#eaf4e2", "#a9d18e"], "pairs_with": ["desserts", "pastry"], "default_prep_min": 5, "i18n": {"kz": {"name": "Шай"}, "en": {"name": "Tea"}}},
+    {"id": "cocoa", "name": "Какао и шоколад", "emoji": "🍫", "kind": "drink", "colors": ["#f3e2d7", "#bf8a63"], "pairs_with": ["desserts", "pastry"], "default_prep_min": 4, "i18n": {"kz": {"name": "Какао және шоколад"}, "en": {"name": "Cocoa & Chocolate"}}},
+    {"id": "cold_drinks", "name": "Холодные напитки", "emoji": "🧊", "kind": "drink", "colors": ["#e2f3f9", "#94d0e6"], "pairs_with": ["desserts", "pastry", "snacks"], "default_prep_min": 4, "i18n": {"kz": {"name": "Салқын сусындар"}, "en": {"name": "Cold drinks"}}},
+    {"id": "breakfast", "name": "Завтраки", "emoji": "🍳", "kind": "food", "colors": ["#fff3d9", "#f5c25e"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 10, "i18n": {"kz": {"name": "Таңғы ас"}, "en": {"name": "Breakfast"}}},
+    {"id": "hot_meals", "name": "Горячие блюда", "emoji": "🍲", "kind": "food", "colors": ["#fde6d8", "#ee956a"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 15, "i18n": {"kz": {"name": "Ыстық тағамдар"}, "en": {"name": "Hot meals"}}},
+    {"id": "snacks", "name": "Закуски", "emoji": "🥪", "kind": "food", "colors": ["#f7eedc", "#ddb77a"], "pairs_with": ["coffee", "tea", "cold_drinks"], "default_prep_min": 8, "i18n": {"kz": {"name": "Тіскебасарлар"}, "en": {"name": "Snacks"}}},
+    {"id": "desserts", "name": "Десерты", "emoji": "🍰", "kind": "sweet", "colors": ["#fde4ec", "#ee9fba"], "pairs_with": ["coffee", "tea", "cocoa"], "default_prep_min": 2, "i18n": {"kz": {"name": "Десерттер"}, "en": {"name": "Desserts"}}},
+    {"id": "pastry", "name": "Выпечка", "emoji": "🥐", "kind": "sweet", "colors": ["#fcecd5", "#e4ae6c"], "pairs_with": ["coffee", "tea", "cocoa"], "default_prep_min": 3, "i18n": {"kz": {"name": "Тоқаштар"}, "en": {"name": "Pastry"}}},
+    {"id": "combo", "name": "Комбо", "emoji": "✨", "kind": "set", "colors": ["#efe6fc", "#b49ced"], "pairs_with": ["desserts", "pastry"], "default_prep_min": 10, "i18n": {"kz": {"name": "Комбо"}, "en": {"name": "Combos"}}},
+    {"id": "other", "name": "Другое", "emoji": "🍽️", "kind": "other", "colors": ["#f1ebe4", "#c9b6a3"], "pairs_with": [], "default_prep_min": 5, "i18n": {"kz": {"name": "Басқа"}, "en": {"name": "Other"}}}
   ]
 }

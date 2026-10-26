@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>QR-коды для столов — Secretbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Unbounded:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { padding: 24px 0 60px; }
+    h1 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+    .lead { color: var(--muted); margin-bottom: 20px; }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      padding: 18px;
+      border-radius: 20px;
+      background: var(--surface);
+      margin-bottom: 14px;
+    }
+    .controls label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    .controls .wide { grid-column: 1 / -1; }
+    .controls input, .controls select {
+      height: 44px; padding: 0 12px; border: 0; border-radius: 12px;
+      background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--line);
+      font: inherit; font-size: 15px; color: var(--text);
+    }
+    .controls .check { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+    .controls .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+    .warn { display: none; padding: 12px 14px; border-radius: 12px; background: #fff3cd; color: #7a5b00; font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+    .warn.show { display: block; }
+    .actions { display: flex; gap: 10px; margin-bottom: 24px; }
+    .actions .btn-primary { width: auto; padding: 0 24px; height: 48px; }
+
+    .sheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .qr-card {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 20px 16px; border-radius: 20px; background: #fff; color: #2a1c13;
+      border: 1.5px dashed #d9cbbd; text-align: center; break-inside: avoid;
+    }
+    .qr-card .logo-img { width: 64px; height: 64px; object-fit: contain; }
+    .qr-card .cafe { font-family: 'Unbounded', var(--font); font-size: 17px; }
+    .qr-card .qr svg { width: 190px; height: 190px; display: block; }
+    .qr-card .table { font-size: 26px; font-weight: 800; }
+    .qr-card .hint { font-size: 12.5px; color: #8b7b6e; margin: 0; }
+    .qr-card .url { font-size: 9.5px; color: #b3a497; word-break: break-all; }
+
+    @media print {
+      @page { margin: 10mm; }
+      body { background: #fff; padding: 0; }
+      .no-print { display: none !important; }
+      .container { max-width: none; padding: 0; }
+      .sheet-grid { grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+      .qr-card { border-color: #bbb; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="no-print">
+      <h1>QR-коды для столов</h1>
+      <p class="lead">Гость сканирует код — открывается меню кофейни, а в заказе уже стоит «В зале · стол N».</p>
+
+      <div class="controls">
+        <label>Кофейня <select id="cafe"></select></label>
+        <label>Столы с <input id="from" type="number" min="1" max="999" value="1"></label>
+        <label>по <input id="to" type="number" min="1" max="999" value="10"></label>
+        <label class="wide">Адрес сайта (куда ведёт QR-код)
+          <input id="base" type="url" placeholder="https://the-fabulous.github.io/secretbox_menus/coffee-menu/"></label>
+        <label class="check"><input id="counter" type="checkbox"> Ещё код без стола (на кассу, витрину)</label>
+      </div>
+      <div class="warn" id="warn">Адрес сайта указывает на этот компьютер (localhost) — с телефона по такому QR-коду меню не откроется. Укажите адрес сайта в интернете, например GitHub Pages.</div>
+      <div class="actions">
+        <button class="btn-primary" type="button" id="print">Печать</button>
+      </div>
+    </div>
+
+    <div class="sheet-grid" id="cards"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script>
+    (async () => {
+      'use strict';
+      const $ = s => document.querySelector(s);
+      const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
+
+      const registry = await (await fetch('data/cafes.json', { cache: 'no-cache' })).json();
+      const cafes = registry.cafes || [];
+      $('#cafe').innerHTML = cafes.map(c => `<option value="${esc(c.id)}">${esc(c.name || c.id)}</option>`).join('');
+
+      // по умолчанию — адрес, откуда открыта эта страница
+      $('#base').value = location.href.replace(/qr\.html.*$/, '');
+
+      function qrSvg(text) {
+        const qr = qrcode(0, 'M');
+        qr.addData(text);
+        qr.make();
+        return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+      }
+
+      function render() {
+        const cafe = cafes.find(c => c.id === $('#cafe').value);
+        if (!cafe) return;
+        let base = $('#base').value.trim() || location.href.replace(/qr\.html.*$/, '');
+        if (!/\/$|\.html$/.test(base)) base += '/';
+        $('#warn').classList.toggle('show', /\/\/(localhost|127\.0\.0\.1)/.test(base));
+
+        const from = Math.max(1, Number($('#from').value) || 1);
+        const to = Math.min(from + 99, Math.max(from, Number($('#to').value) || from)); // не больше 100 за раз
+        const tables = [];
+        for (let n = from; n <= to; n++) tables.push(String(n));
+        if ($('#counter').checked) tables.push(null);
+
+        $('#cards').innerHTML = tables.map(n => {
+          const url = `${base}?cafe=${encodeURIComponent(cafe.id)}${n ? `&table=${n}` : ''}`;
+          return `
+            <div class="qr-card">
+              ${cafe.logo ? `<img class="logo-img" src="${esc(cafe.logo)}" alt="">` : ''}
+              <div class="cafe">${esc(cafe.name || cafe.id)}</div>
+              <div class="qr">${qrSvg(url)}</div>
+              <div class="table">${n ? `Стол ${esc(n)}` : 'Меню'}</div>
+              <p class="hint">Наведите камеру телефона,<br>чтобы открыть меню и заказать</p>
+              <div class="url">${esc(url)}</div>
+            </div>`;
+        }).join('');
+      }
+
+      ['#cafe', '#from', '#to', '#base', '#counter'].forEach(s => $(s).addEventListener('input', render));
+      $('#print').addEventListener('click', () => window.print());
+      render();
+    })();
+  </script>
+</body>
+</html>

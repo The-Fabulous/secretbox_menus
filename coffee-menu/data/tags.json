@@ -1,0 +1,11 @@
+{
+  "_comment": "Метки позиций. У позиции в меню: \"tags\": [\"hit\", \"vegan\"]. По меткам работает фильтр на сайте.",
+  "tags": [
+    { "id": "hit",        "name": "Хит",              "emoji": "🔥", "color": "#e2493b", "i18n": { "kz": { "name": "Хит" },        "en": { "name": "Bestseller" } } },
+    { "id": "new",        "name": "Новинка",          "emoji": "✨", "color": "#7a5af5", "i18n": { "kz": { "name": "Жаңа" },       "en": { "name": "New" } } },
+    { "id": "spicy",      "name": "Острое",           "emoji": "🌶️", "color": "#d9480f", "i18n": { "kz": { "name": "Ащы" },        "en": { "name": "Spicy" } } },
+    { "id": "vegan",      "name": "Веган",            "emoji": "🌱", "color": "#2f9e44", "i18n": { "kz": { "name": "Веган" },      "en": { "name": "Vegan" } } },
+    { "id": "vegetarian", "name": "Вегетарианское",   "emoji": "🥦", "color": "#5c940d", "i18n": { "kz": { "name": "Вегетариандық" }, "en": { "name": "Vegetarian" } } },
+    { "id": "no_sugar",   "name": "Без сахара",       "emoji": "🚫", "color": "#1c7ed6", "i18n": { "kz": { "name": "Қантсыз" },    "en": { "name": "Sugar-free" } } }
+  ]
+}

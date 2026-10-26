@@ -13,7 +13,38 @@
           "id":    { "type": "string", "description": "coffee, tea, cocoa, cold_drinks, pastry, desserts, breakfast, snacks, hot_meals, combo — цвета и рекомендации берутся из data/categories.json" },
           "name":  { "type": "string" },
           "icon":  { "type": ["string", "null"], "description": "Эмодзи раздела; показывается, пока у позиции нет фото" },
-          "order": { "type": ["number", "null"], "description": "Порядок в ленте разделов" }
+          "order": { "type": ["number", "null"], "description": "Порядок в ленте разделов" },
+          "i18n":  { "$ref": "#/definitions/i18n" }
+        }
+      }
+    },
+    "modifier_groups": {
+      "type": "array",
+      "description": "Добавки к напиткам: молоко, сироп, доп. шот",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "options"],
+        "properties": {
+          "id":         { "type": "string" },
+          "name":       { "type": "string" },
+          "type":       { "enum": ["single", "multi"], "description": "single — один вариант (молоко), multi — несколько (сиропы)" },
+          "max":        { "type": ["number", "null"], "description": "Для multi: сколько можно выбрать максимум" },
+          "applies_to": { "type": "array", "items": { "type": "string" }, "description": "К каким разделам (category_id) применяется" },
+          "i18n":       { "$ref": "#/definitions/i18n" },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "price"],
+              "properties": {
+                "id":      { "type": "string" },
+                "name":    { "type": "string" },
+                "price":   { "type": "number", "description": "Доплата; 0 — бесплатно" },
+                "default": { "type": "boolean", "description": "Выбрано по умолчанию (для single)" },
+                "i18n":    { "$ref": "#/definitions/i18n" }
+              }
+            }
+          }
         }
       }
     },
@@ -31,6 +62,11 @@
           "ingredients":   { "type": ["array", "null"], "items": { "type": "string" } },
           "prep_time_min": { "type": ["number", "null"], "description": "Время приготовления, мин" },
           "is_special":    { "type": "boolean", "description": "true — позиция в блоке «Сегодня в меню»" },
+          "modifier_group_ids": { "type": ["array", "null"], "items": { "type": "string" },
+                                  "description": "Какие группы добавок у этой позиции. Нет поля — по разделу (applies_to), [] — без добавок" },
+          "i18n":          { "$ref": "#/definitions/i18n" },
+          "tags":          { "type": ["array", "null"], "items": { "enum": ["hit", "new", "spicy", "vegan", "vegetarian", "no_sugar"] },
+                             "description": "Метки из data/tags.json: показываются на карточке, по ним работает фильтр" },
           "variants": {
             "type": "array",
             "minItems": 1,
@@ -55,6 +91,24 @@
             }
           }
         }
+      }
+    }
+  },
+  "definitions": {
+    "i18n": {
+      "type": "object",
+      "description": "Переводы. Нет перевода — показывается русский",
+      "properties": {
+        "kz": { "$ref": "#/definitions/translation" },
+        "en": { "$ref": "#/definitions/translation" }
+      }
+    },
+    "translation": {
+      "type": "object",
+      "properties": {
+        "name":        { "type": "string" },
+        "description": { "type": "string" },
+        "ingredients": { "type": "array", "items": { "type": "string" } }
       }
     }
   }

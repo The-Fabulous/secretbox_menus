@@ -437,6 +437,20 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   object-fit: cover;
   background: var(--surface-2);
 }
+/* в большом окне позиции фото целиком (contain), а по бокам — цвет его фона: под фото лежит его копия,
+   растянутая так, что видно только левый верхний угол (там всегда фон), и размытая в ровный цвет */
+.pic.xl img { object-fit: contain; background: none; z-index: 3; }
+.pic.xl img.pic-blur {
+  z-index: 2;
+  inset: -60px;              /* с запасом: у размытия края прозрачные — пусть они будут за пределами окна */
+  width: calc(100% + 120px);
+  height: calc(100% + 120px);
+  object-fit: cover;
+  object-position: 0 0;
+  transform: scale(8);
+  transform-origin: 60px 60px;
+  filter: blur(16px);
+}
 
 .card {
   position: relative;

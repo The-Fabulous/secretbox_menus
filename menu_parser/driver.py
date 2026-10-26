@@ -90,36 +90,130 @@ def image_tiles(path, max_width):
 # ───────── фото позиций: модель указывает, где фото, скрипт уточняет рамку и вырезает
 
 PHOTO_PROMPT = """На изображении — меню кофейни. Найди фотографии позиций (фото напитка или блюда).
-Не считай фотографией: значок загрузки, пустую или тёмную карточку, иконки, кнопки, логотип, фон.
+Не считай фотографией: значок загрузки, пустую или тёмную карточку, иконки, кнопки, логотип, фон,
+а также бледное (полупрозрачное) фото с надписью поверх — «Скоро», «Нет в наличии», «Закончилось».
+Если название позиции под фото не видно целиком (обрезано краем изображения) — пропусти это фото,
+не угадывай название.
 Для каждой фотографии укажи название позиции, к которой она относится (как написано на карточке),
-и рамку самой фотографии в координатах 0..1000 относительно ширины и высоты изображения: [x1, y1, x2, y2].
+и рамку самой фотографии в координатах 0..1000 относительно ширины и высоты изображения: [x1, y1, x2, y2],
+где (x1, y1) — левый верхний угол, (x2, y2) — правый нижний; x — по горизонтали, y — по вертикали.
 Ответ — только JSON: {"photos": [{"name": "...", "box": [x1, y1, x2, y2]}]}. Если фотографий нет — {"photos": []}."""
 
 
 def ask_photos(client, model, data_url):
     """Где на фрагменте фото позиций. Ошибка здесь не мешает меню — просто будут эмодзи."""
     try:
-        resp = client.chat.completions.create(
-            model=model, temperature=0, max_tokens=3000,
-            messages=[{'role': 'user', 'content': [
-                {'type': 'text', 'text': PHOTO_PROMPT},
-                {'type': 'image_url', 'image_url': {'url': data_url}},
-            ]}],
-        )
-        photos = extract_json(resp.choices[0].message.content or '').get('photos') or []
+        data, _ = call_model(client, model, [{'role': 'user', 'content': [
+            {'type': 'text', 'text': PHOTO_PROMPT},
+            {'type': 'image_url', 'image_url': {'url': data_url}},
+        ]}], max_tokens=3000)
+        photos = data.get('photos') or [] if isinstance(data, dict) else []
         return [p for p in photos if isinstance(p, dict) and text_or_null(p.get('name'))
                 and isinstance(p.get('box'), list) and len(p['box']) == 4]
     except Exception as e:
-        print(f'    (фото позиций не найдены: {e})')
+        print(f'    (фото позиций не найдены — будут эмодзи: {str(e)[:150]})')
         return []
 
 
+CARD_SIZE = 600      # фото позиции на сайте — квадрат CARD_SIZE×CARD_SIZE
+CARD_MARGIN = 0.07   # поле вокруг предмета, доля стороны
+
+
+def _content_mask(region):
+    """«Не фон»: отличие от цвета фона ИЛИ резкий перепад яркости (контур).
+    По контуру видны и предметы цвета фона — белая пачка кофе на белом фоне."""
+    import numpy as np
+    border = np.concatenate([region[0], region[-1], region[:, 0], region[:, -1]])
+    bg = np.median(border, axis=0)
+    color = np.abs(region - bg).max(axis=2) > 28
+    gray = region.mean(axis=2)
+    edges = np.zeros(gray.shape, dtype=bool)
+    edges[:, 1:] |= np.abs(np.diff(gray, axis=1)) > 24
+    edges[1:, :] |= np.abs(np.diff(gray, axis=0)) > 24
+    return color | edges, bg
+
+
+def _span_profile(mask):
+    """Для каждой строки — доля ширины от первого до последнего пикселя содержимого.
+    У белой пачки закрашены только края, но размах — во всю ширину, поэтому пачка не теряется.
+    Одиночные выбросы по краям (шум JPEG) не учитываются."""
+    import numpy as np
+    w = mask.shape[1]
+    out = np.zeros(mask.shape[0])
+    for y, row in enumerate(mask):
+        idx = np.flatnonzero(row)
+        if len(idx) >= 3:
+            out[y] = (idx[-2] - idx[1] + 1) / w
+    return out
+
+
+def is_faded(img):
+    """Бледная заглушка «Скоро» / «Нет в наличии» (полупрозрачное фото с надписью поверх).
+    Признаки: почти нет средних тонов; либо их мало, а сам предмет очень светлый и выцветший.
+    Светлая чашка с какао или белая пачка кофе сюда не попадают: у них есть насыщенные цвета или средние тона."""
+    import numpy as np
+    a = np.asarray(img.convert('RGB'), dtype=float)
+    lum = a.mean(axis=2)
+    obj = lum < 235
+    if not obj.any():
+        return True
+    mid = ((lum > 60) & (lum < 200)).mean()
+    sat = (a.max(axis=2) - a.min(axis=2)) / (a.max(axis=2) + 1)
+    return mid < 0.06 or (mid < 0.13 and lum[obj].mean() > 195 and sat[obj].mean() < 0.12)
+
+
+def to_card(img):
+    """Квадратная плашка CARD_SIZE×CARD_SIZE: предмет по центру с полями, фон дополнен цветом фона фото.
+    Карточка на сайте квадратная — так ничего не обрезается и все позиции выглядят одинаково."""
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(img.convert('RGB'))
+    border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
+    bg = tuple(int(v) for v in np.median(border, axis=0))
+    inner = int(CARD_SIZE * (1 - 2 * CARD_MARGIN))
+    scale = inner / max(img.width, img.height)
+    fitted = img.convert('RGB').resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.LANCZOS)
+    card = Image.new('RGB', (CARD_SIZE, CARD_SIZE), bg)
+    # края фото плавно растворяются в фоне плашки: фон у исходного фото редко идеально ровный,
+    # и без этого на квадрате проступал бы прямоугольник исходного кадра
+    fade = max(4, int(min(fitted.size) * 0.06))
+    ramp_x = np.minimum(np.arange(fitted.width), np.arange(fitted.width)[::-1]) / fade
+    ramp_y = np.minimum(np.arange(fitted.height), np.arange(fitted.height)[::-1]) / fade
+    alpha = np.clip(np.minimum.outer(ramp_y, ramp_x), 0, 1)
+    mask = Image.fromarray((alpha * 255).astype('uint8'), 'L')
+    card.paste(fitted, ((CARD_SIZE - fitted.width) // 2, (CARD_SIZE - fitted.height) // 2), mask)
+    return card
+
+
 def crop_photo(tile, box):
-    """Вырезает фото по примерной рамке модели.
+    """Вырезает фото позиции по примерной рамке модели и возвращает квадратную плашку для сайта.
     По горизонтали модель попадает в карточку точно, а по вертикали часто промахивается, поэтому область
-    расширяется в основном вверх-вниз. Внутри неё фон определяется по краю, а фото — это самая «тяжёлая»
-    сплошная полоса строк: подпись и цена отделены от фото полосой чистого фона и в кадр не попадают.
-    None — если фото не нашлось (пустая карточка, значок загрузки) или оно обрезано краем фрагмента."""
+    расширяется в основном вверх-вниз. Фото — самая «тяжёлая» сплошная полоса строк с содержимым:
+    подпись и цена отделены от него полосой чистого фона и в кадр не попадают.
+    None — если фото не нашлось (пустая карточка, значок загрузки), это бледная заглушка «Скоро»
+    или фото обрезано краем фрагмента. Тогда у позиции будет эмодзи."""
+    img = None
+    for candidate in _box_orders(box):
+        img = _locate_photo(tile, candidate)
+        if img is not None:
+            break
+    if img is None or is_faded(img):
+        return None
+    return to_card(img)
+
+
+def _box_orders(box):
+    """Рамка в порядке [x1, y1, x2, y2], а если в нём она невозможна (правый край левее левого) —
+    другие порядки, которые встречаются у моделей: [x1, y1, y2, x2] и [y1, x1, y2, x2]."""
+    try:
+        a, b, c, d = (float(v) for v in box)
+    except (TypeError, ValueError):
+        return []
+    orders = [(a, b, c, d), (a, b, d, c), (b, a, d, c)]
+    return [o for o in orders if o[2] > o[0] and o[3] > o[1]]
+
+
+def _locate_photo(tile, box):
     import numpy as np
 
     W, H = tile.size
@@ -140,39 +234,44 @@ def crop_photo(tile, box):
         if region.shape[0] < 60 or region.shape[1] < 60:
             return None
 
-        border = np.concatenate([region[0], region[-1], region[:, 0], region[:, -1]])
-        bg = np.median(border, axis=0)
-        mask = np.abs(region - bg).max(axis=2) > 40      # «не фон»
+        mask, _ = _content_mask(region)
         # строки считаем только в колонках рамки модели — соседние карточки не мешают
-        fill = mask[:, int(bx1 - ex1):max(int(bx1 - ex1) + 1, int(bx2 - ex1))].mean(axis=1)
-        if fill.max() < 0.2:
+        core = mask[:, int(bx1 - ex1):max(int(bx1 - ex1) + 1, int(bx2 - ex1))]
+        rows = _span_profile(core)
+        if rows.max() < 0.25:
             return None                                   # почти пусто — значок загрузки или пустая карточка
         # фото от подписи и цены отделяет полоса чистого фона
-        runs = _runs(fill, 0.12, max_gap=6)
+        runs = _runs(rows, 0.15, max_gap=6)
         if not runs:
             return None
-        r0, r1 = max(runs, key=lambda r: fill[r[0]:r[1]].sum())  # самая «тяжёлая» полоса — фото
-        if r1 - r0 < 60:
+        r0, r1 = max(runs, key=lambda r: rows[r[0]:r[1]].sum())  # самая «тяжёлая» полоса — фото
+        if r1 - r0 < 50:
             return None
         # фото упирается в верх или низ фрагмента — оно обрезано, целиком будет на соседнем
         if (r0 == 0 and ey1 == 0) or (r1 >= region.shape[0] - 1 and ey2 == H):
             return None
 
         # по горизонтали — сплошная колонка содержимого, в которой центр рамки модели
-        col_runs = _runs(mask[r0:r1].mean(axis=0), 0.05, max_gap=6)
+        cols = _span_profile(mask[r0:r1].T)
+        col_runs = _runs(cols, 0.15, max_gap=6)
         if not col_runs:
             return None
         center = (bx1 + bx2) / 2 - ex1
         c0, c1 = min(col_runs, key=lambda r: 0 if r[0] <= center < r[1] else min(abs(r[0] - center), abs(r[1] - center)))
         if (c0 == 0 and ex1 > 0) or (c1 >= region.shape[1] and ex2 < W):
             continue                                      # обрезано сбоку — пробуем область шире
-        if c1 - c0 < 60 or mask[r0:r1, c0:c1].mean() < 0.2:
+        if c1 - c0 < 50:
             return None
-
-        pad_x, pad_y = int((c1 - c0) * 0.04), int((r1 - r0) * 0.04)
-        left, top = max(0, c0 - pad_x), max(0, r0 - pad_y)
-        right, bottom = min(region.shape[1], c1 + pad_x), min(region.shape[0], r1 + pad_y)
-        return tile.crop((ex1 + left, ey1 + top, ex1 + right, ey1 + bottom))
+        # строки уточняем по найденной колонке — без соседей сверху и снизу
+        rows2 = _span_profile(mask[:, c0:c1])
+        runs2 = [r for r in _runs(rows2, 0.15, max_gap=6) if r[0] < r1 and r[1] > r0]
+        if runs2:
+            r0, r1 = min(r[0] for r in runs2), max(r[1] for r in runs2)
+        # под фото должно поместиться название: если фото у нижнего края фрагмента, подпись обрезана
+        # и модель могла приписать фото чужое название — берём это фото с соседнего фрагмента
+        if H - (ey1 + r1) < max(40, 0.3 * (r1 - r0)):
+            return None
+        return tile.crop((ex1 + c0, ey1 + r0, ex1 + c1, ey1 + r1))
     return None  # и в широкой области фото обрезано сбоку — лучше эмодзи, чем половина фото
 
 
@@ -195,40 +294,91 @@ def _runs(values, threshold, max_gap):
 
 # ───────── запрос к модели
 
-def build_prompt(etalon, categories, example):
+# Модель отвечает короткими ключами — меньше текста: быстрее, меньше упирается в лимит токенов и реже обрывается.
+# Скрипт переводит их обратно в формат сайта (expand_keys); ответы с полными ключами тоже понимает.
+KEY_MAPPING = {
+    'cats': 'categories', 'mods': 'modifier_groups', 'itms': 'items',
+    'cid': 'category_id', 'n': 'name', 'ic': 'icon', 'desc': 'description', 'ing': 'ingredients',
+    'vars': 'variants', 'm': 'measure', 'p': 'price',
+    'nut': 'nutrition', 'cal': 'calories', 'pro': 'proteins', 'fat': 'fats', 'carb': 'carbs',
+    't': 'type', 'app': 'applies_to', 'opts': 'options', 'def': 'default',
+}
+SHORT_KEYS = {v: k for k, v in KEY_MAPPING.items()}
+# это скрипт заполняет сам — модели писать не нужно
+NOT_FOR_MODEL = {'image_url', 'prep_time_min', 'is_special', 'variant_id', 'order'}
+
+
+def _rename_keys(obj, mapping, drop=()):
+    if isinstance(obj, dict):
+        return {mapping.get(k, k): _rename_keys(v, mapping, drop) for k, v in obj.items() if k not in drop}
+    if isinstance(obj, list):
+        return [_rename_keys(x, mapping, drop) for x in obj]
+    return obj
+
+
+def expand_keys(data):
+    return _rename_keys(data, KEY_MAPPING)
+
+
+def shorten_keys(data):
+    return _rename_keys(data, SHORT_KEYS, NOT_FOR_MODEL)
+
+
+PROMPT_EXAMPLE = {
+    'categories': [{'id': 'coffee', 'name': 'Кофе'}],
+    'modifier_groups': [],
+    'items': [
+        {'category_id': 'coffee', 'name': 'Капучино', 'icon': '☕', 'description': None, 'ingredients': None,
+         'variants': [{'measure': '250 мл', 'price': 1190, 'nutrition': None},
+                      {'measure': '350 мл', 'price': 1390, 'nutrition': None}]},
+        {'category_id': 'coffee', 'name': 'Раф лавандовый', 'icon': '☕',
+         'description': 'Эспрессо, сливки и лавандовый сироп', 'ingredients': None,
+         'variants': [{'measure': None, 'price': 1590,
+                       'nutrition': {'calories': 280, 'proteins': None, 'fats': None, 'carbs': None}}]},
+    ],
+}
+
+
+def build_prompt(etalon, categories):
     cats = '\n'.join(f'  - {c["id"]} — {c["name"]}' for c in categories if c['id'] != 'other')
+    template = shorten_keys(etalon)
+    for item in template.get('itms', []):
+        item.pop('id', None)  # id позиции скрипт строит из названия
     return f"""На фото — страница меню кофейни. Перепиши ВСЕ позиции с фото в JSON строго по шаблону.
+
+Ключи в шаблоне сокращены: cats — разделы, itms — позиции, mods — группы добавок, cid — id раздела,
+n — название, ic — эмодзи, desc — описание, ing — состав, vars — варианты (размеры), m — объём/вес,
+p — цена, nut — КБЖУ (cal, pro, fat, carb), t — тип, app — к каким разделам, opts — варианты, def — по умолчанию.
 
 Правила:
 1. Ответ — только JSON-объект, без пояснений и без ```.
-2. Ничего не выдумывай. Чего нет на фото (описание, состав, объём/вес, КБЖУ, время приготовления) — пиши null.
-3. category_id — только один из этих разделов:
+2. Ничего не выдумывай. Чего нет на фото (описание, состав, объём/вес, КБЖУ) — пиши null.
+3. cid — только один из этих разделов:
 {cats}
-   Если ничего не подходит — other. В categories[].name пиши название раздела так, как оно написано на фото.
+   Если ничего не подходит — other. В cats[].n пиши название раздела так, как оно написано на фото.
    Напитки (в том числе глинтвейн, какао, урбеч, молочные коктейли) — только в разделы напитков
    (coffee, tea, cocoa, cold_drinks), никогда не в блюда.
-4. price — число без пробелов и знака валюты: «1 290 ₸» → 1290.
-5. Один напиток в нескольких размерах (S/M/L, 250/350 мл) — одна позиция с несколькими variants,
-   в measure пиши объём или вес как на фото («350 мл», «150 г»), если не указан — null.
-6. id позиции — латиницей в snake_case с префиксом item_ (Капучино → item_kapuchino).
-7. Добавки с доплатой (сиропы, альтернативное молоко, доп. шот), если они есть на фото, — в modifier_groups:
-   type "single" — выбирается одно (молоко), "multi" — несколько (сиропы); applies_to — id разделов.
-   Если добавок на фото нет — "modifier_groups": [].
-8. Названия пиши как на фото, исправляя только явные ошибки распознавания.
-9. Если на фото нет меню — верни {{"categories": [], "modifier_groups": [], "items": []}}.
-10. Фото может быть фрагментом длинного меню. Карточку, обрезанную верхним или нижним краем
-    (не видно названия или цены целиком), пропусти — она целиком есть на соседнем фрагменте.
-11. Цену читай очень внимательно, цифра за цифрой: 990, 1090 и 1290 — разные цены.
-12. Блоки «Популярное», «Хиты», «Рекомендуем», «Новинки» — не разделы: позиции из них всё равно
-    переписывай, category_id выбирай по смыслу позиции, а сам блок в categories не добавляй.
-13. icon — один эмодзи, который точнее всего изображает позицию: 🍋 лимонад, 🍒 вишнёвый колд брю,
+4. p — число без пробелов и знака валюты: «1 290 ₸» → 1290.
+5. Один напиток в нескольких размерах (S/M/L, 250/350 мл) — одна позиция с несколькими vars,
+   в m пиши объём или вес как на фото («350 мл», «150 г»), если не указан — null.
+6. Добавки с доплатой (сиропы, альтернативное молоко, доп. шот), если они есть на фото, — в mods:
+   t "single" — выбирается одно (молоко), "multi" — несколько (сиропы); app — id разделов.
+   Если добавок на фото нет — "mods": [].
+7. Названия пиши как на фото, исправляя только явные ошибки распознавания.
+8. Если на фото нет меню — верни {{"cats": [], "mods": [], "itms": []}}.
+9. Фото может быть фрагментом длинного меню. Карточку, обрезанную верхним или нижним краем
+   (не видно названия или цены целиком), пропусти — она целиком есть на соседнем фрагменте.
+10. Цену читай очень внимательно, цифра за цифрой: 990, 1090 и 1290 — разные цены.
+11. Блоки «Популярное», «Хиты», «Рекомендуем», «Новинки» — не разделы: позиции из них всё равно
+    переписывай, cid выбирай по смыслу позиции, а сам блок в cats не добавляй.
+12. ic — один эмодзи, который точнее всего изображает позицию: 🍋 лимонад, 🍒 вишнёвый колд брю,
     🥜 урбеч, 🍵 матча, 🍫 горячий шоколад, 🥛 молочный коктейль, ☕ классический кофе.
 
 Шаблон (пустой):
-{json.dumps(etalon, ensure_ascii=False, indent=2)}
+{json.dumps(template, ensure_ascii=False, separators=(',', ':'))}
 
-Пример правильно заполненного фрагмента:
-{json.dumps(example, ensure_ascii=False, indent=2)}"""
+Пример правильно заполненного ответа (позиции придуманы — бери данные только с фото):
+{json.dumps(shorten_keys(PROMPT_EXAMPLE), ensure_ascii=False, separators=(',', ':'))}"""
 
 
 def extract_json(text):
@@ -240,34 +390,59 @@ def extract_json(text):
     return json.loads(text[start:end + 1])
 
 
-def ask_model(client, model, prompt, data_url, attempts=3):
-    """Один запрос на одно фото. Повторяет при сетевой ошибке и при битом JSON."""
-    last_error = None
-    for attempt in range(1, attempts + 1):
+RETRY_WAITS = (5, 15, 30, 60)  # секунды между попытками: сервер перегружен — даём ему передохнуть
+# Лимит ключа llm.alem.ai — 15 запросов в минуту: держим паузу между запросами, чтобы не упираться в него
+MIN_INTERVAL = float(os.environ.get('GEMMA_MIN_INTERVAL', '4.5'))
+_last_call = [0.0]
+
+
+def _pace():
+    wait = _last_call[0] + MIN_INTERVAL - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_call[0] = time.monotonic()
+
+
+def call_model(client, model, messages, max_tokens):
+    """Запрос к модели с повторами: при перегрузке, лимите запросов, сетевом сбое и битом JSON.
+    Возвращает (JSON из ответа, текст ответа)."""
+    last_error, last_exc = None, None
+    for attempt in range(len(RETRY_WAITS) + 1):
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                temperature=0,
-                max_tokens=8192,
-                messages=[
-                    {'role': 'system', 'content': 'Ты точно переписываешь меню кофеен с фотографий в JSON. Отвечаешь только JSON.'},
-                    {'role': 'user', 'content': [
-                        {'type': 'text', 'text': prompt},
-                        {'type': 'image_url', 'image_url': {'url': data_url}},
-                    ]},
-                ],
-            )
+            _pace()
+            resp = client.chat.completions.create(model=model, temperature=0, max_tokens=max_tokens, messages=messages,
+                                                  response_format={'type': 'json_object'})  # ответ — только JSON
             text = resp.choices[0].message.content or ''
-            return extract_json(text), text
+            return expand_keys(extract_json(text)), text
         except (ValueError, json.JSONDecodeError) as e:
-            last_error = f'модель вернула некорректный JSON: {e}'
-        except Exception as e:  # сеть, лимиты, неверный ключ — сообщение от сервера
-            last_error = str(e)
-            if 'auth' in last_error.lower() or '401' in last_error:
-                break  # неверный ключ — повторять бессмысленно
-        print(f'    попытка {attempt}/{attempts} не удалась: {last_error}')
-        time.sleep(2 * attempt)
+            last_error, last_exc = f'модель вернула некорректный JSON: {e}', None
+        except Exception as e:  # сеть, лимиты, перегрузка, неверный ключ — сообщение от сервера
+            last_exc = e
+            status = getattr(e, 'status_code', None)
+            last_error = f'{type(e).__name__}{f" {status}" if status else ""}: {e}'
+            if status in (400, 401, 403, 404):
+                break  # неверный ключ, модель или запрос — повторять бессмысленно
+        if attempt == len(RETRY_WAITS):
+            break
+        wait = RETRY_WAITS[attempt]
+        # сервер может сам сказать, сколько ждать (Retry-After)
+        headers = getattr(getattr(last_exc, 'response', None), 'headers', None) or {}
+        if str(headers.get('retry-after', '')).isdigit():
+            wait = max(wait, min(120, int(headers['retry-after'])))
+        print(f'    попытка {attempt + 1} не удалась ({last_error[:150]}), повтор через {wait} с')
+        time.sleep(wait)
     raise RuntimeError(last_error)
+
+
+def ask_model(client, model, prompt, data_url):
+    """Распознаёт меню на одном фото или фрагменте."""
+    return call_model(client, model, [
+        {'role': 'system', 'content': 'Ты точно переписываешь меню кофеен с фотографий в JSON. Отвечаешь только JSON.'},
+        {'role': 'user', 'content': [
+            {'type': 'text', 'text': prompt},
+            {'type': 'image_url', 'image_url': {'url': data_url}},
+        ]},
+    ], max_tokens=8192)
 
 
 # ───────── приведение ответа модели к формату сайта
@@ -479,9 +654,18 @@ class MenuBuilder:
         return True
 
     def find_id(self, name):
-        """id позиции по названию, как его написала модель (без учёта регистра, ё/е и пробелов)."""
+        """id позиции по названию, как его написала модель (без учёта регистра, ё/е и пробелов).
+        На карточке длинное название бывает обрезано («Батч смородиновы...») — тогда ищем позицию,
+        чьё название начинается так же, если такая ровно одна."""
         key = re.sub(r'\s+', ' ', (tidy_name(name) or '').lower().replace('ё', 'е'))
-        return self.by_key.get(key)
+        if key in self.by_key:
+            return self.by_key[key]
+        stem = re.sub(r'[.…]+$', '', key).strip()
+        if len(stem) >= 4:
+            matches = [k for k in self.by_key if k.startswith(stem)]
+            if len(matches) == 1:
+                return self.by_key[matches[0]]
+        return None
 
     def result(self):
         used = {i['category_id'] for i in self.items}
@@ -531,7 +715,7 @@ def logo_file(photos_dir, info):
     raise ValueError(f'Логотип не найден: {info["logo"]}')
 
 
-def write_tab(folder, cafe_id, info, menu, crops, raw_answers, logo=None):
+def write_tab(folder, cafe_id, info, menu, crops, logo=None):
     """Все файлы заведения в одной папке. Индекс обновляется после записи вкладки."""
     folder = folder.resolve()
     on_site = folder.parent == (SITE / 'tabs').resolve()
@@ -557,10 +741,6 @@ def write_tab(folder, cafe_id, info, menu, crops, raw_answers, logo=None):
         img.thumbnail((600, 600))
         item['image_url'] = f'images/{item["id"]}.jpg'
         img.save(folder / item['image_url'], 'JPEG', quality=85, optimize=True)
-    if raw_answers:
-        (folder / 'raw').mkdir(exist_ok=True)
-        for name, answer in raw_answers.items():
-            (folder / 'raw' / name).write_text(answer, encoding='utf-8')
     write_json(folder / 'menu.json', menu)
     write_json(folder / 'cafe.json', entry)
     if on_site:
@@ -583,6 +763,9 @@ def main():
                         help='ширина, до которой уменьшается фото, px (длинные фото режутся на фрагменты по высоте)')
     parser.add_argument('--no-photos', dest='photos_from_menu', action='store_false',
                         help='не вырезать фото позиций из меню (быстрее: один запрос к модели на фрагмент)')
+    parser.add_argument('--from-cache', action='store_true',
+                        help='брать сохранённые ответы модели (raw/ в папке вкладки) вместо новых запросов — '
+                             'чтобы заново собрать меню и вырезать фото после правок скрипта')
     parser.add_argument('--publish', action='store_true',
                         help='совместимость со старым запуском: теперь вкладка по умолчанию сохраняется на сайт')
     args = parser.parse_args()
@@ -618,21 +801,19 @@ def main():
         if (out / 'menu.json').exists() and previous.get('source') != 'photos':
             out = HERE / 'output' / 'tabs' / cafe_id
             notice('warning', f'Ручное меню сохранено. Новая вкладка будет записана отдельно: {out}')
-    raw_answers = {}
+    raw_dir = out / 'raw'
+    raw_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         from openai import OpenAI
     except ImportError:
         sys.exit('Не установлена библиотека openai. Выполните: pip install -r requirements.txt')
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    # повторы делает call_model (с паузами), встроенные повторы библиотеки выключены
+    client = OpenAI(api_key=api_key, base_url=base_url, timeout=180, max_retries=0)
 
     etalon = load_json(HERE / 'etalon.json')
     styles = (load_json(SITE / 'data' / 'categories.json', {}) or {}).get('categories', [])
-    sample = load_json(SITE / 'tabs' / 'master_coffee' / 'menu.json', {}) or {}
-    example = {'categories': sample.get('categories', [])[:1],
-               'items': [{k: v for k, v in i.items() if k not in ('i18n', 'modifier_group_ids')}
-                         for i in sample.get('items', [])[:2]]}
-    prompt = build_prompt(etalon, styles, example)
+    prompt = build_prompt(etalon, styles)
 
     print(f'Модель: {model} ({base_url})')
     print(f'Кофейня: {cafe_id}, фото: {len(photos)}\n')
@@ -649,20 +830,32 @@ def main():
             context = (f'\n\nЭто фрагмент {k} из {len(tiles)} одного длинного меню. На предыдущем фрагменте последним '
                        f'был раздел «{last_section}» — позиции в начале этого фрагмента до первого заголовка относятся к нему.'
                        if k > 1 and last_section else '')
+            suffix = f'_{k:02d}' if len(tiles) > 1 else ''
+            raw_menu = raw_dir / f'{photo.stem}{suffix}.json'
+            raw_boxes = raw_dir / f'{photo.stem}{suffix}.photos.json'
             try:
-                data, text = ask_model(client, model, prompt + context, tile)
+                if args.from_cache and raw_menu.exists():  # ответ уже есть — модель не спрашиваем
+                    text = raw_menu.read_text(encoding='utf-8')
+                    data = expand_keys(extract_json(text))
+                else:
+                    data, text = ask_model(client, model, prompt + context, tile)
             except Exception as e:
                 print(f'    ✗ {label}: не распознано: {e}')
                 failed.append(label)
                 continue
-            suffix = f'_{k:02d}' if len(tiles) > 1 else ''
-            raw_answers[f'{photo.name}{suffix}.json'] = text
+            raw_menu.write_text(text, encoding='utf-8')  # сырой ответ — для проверки и для --from-cache
             print(f'    ✓ {label}: новых позиций {builder.add(data, label)}')
             last_section = last_section_name(data) or last_section
 
             if tile_img is not None and args.photos_from_menu:
                 found = 0
-                for p in ask_photos(client, model, tile):
+                if args.from_cache and raw_boxes.exists():
+                    boxes = json.loads(raw_boxes.read_text(encoding='utf-8'))
+                else:
+                    boxes = ask_photos(client, model, tile)
+                # рамки модели — рядом с сырыми ответами: по ним можно перепроверить вырезание без новых запросов
+                raw_boxes.write_text(json.dumps(boxes, ensure_ascii=False), encoding='utf-8')
+                for p in boxes:
                     item_id = builder.find_id(p['name'])
                     if item_id and item_id not in crops:
                         img = crop_photo(tile_img, p['box'])
@@ -683,7 +876,7 @@ def main():
         notice('error', f'«{cafe_id}»: не распознаны {", ".join(failed)} — меню на сайте не изменено. '
                         f'Запустите распознавание ещё раз.')
         sys.exit(1)
-    write_tab(out, cafe_id, info, menu, crops, raw_answers, logo)
+    write_tab(out, cafe_id, info, menu, crops, logo)
 
     with_icon = sum(1 for i in menu['items'] if not i['image_url'] and i['icon'])
     print(f'\nГотово: {out}')

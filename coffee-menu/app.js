@@ -183,6 +183,7 @@
     return `
       <div class="pic ${cls}" style="--c1:${esc(c1)};--c2:${esc(c2)}">
         <span>${esc(item.icon || cat.emoji)}</span>
+        ${item.image && cls === 'xl' ? `<img class="pic-blur" src="${esc(item.image)}" alt="" aria-hidden="true" onerror="this.remove()">` : ''}
         ${item.image ? `<img src="${esc(item.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
       </div>`;
   }

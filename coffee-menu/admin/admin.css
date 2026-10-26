@@ -1,0 +1,52 @@
+.admin-page { padding-bottom: 48px; }
+.admin-header { max-width: 1160px; margin: auto; padding: 28px 24px; display: flex; justify-content: space-between; align-items: center; }
+.admin-brand { color: var(--text); text-decoration: none; font-weight: 800; font-size: 21px; letter-spacing: -.7px; }
+.admin-brand span { display: inline-block; margin-left: 10px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0; }
+.admin-main { max-width: 1160px; padding: 28px 24px; margin: auto; }
+.admin-intro { max-width: 670px; margin-bottom: 36px; }
+.eyebrow { color: var(--accent-dark); font-size: 11px; letter-spacing: 2px; font-weight: 800; margin-bottom: 16px; }
+.admin-intro h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.15; letter-spacing: -1.7px; margin: 0 0 18px; }
+.admin-intro > p:last-child { color: var(--muted); line-height: 1.65; font-size: 15px; max-width: 540px; }
+.admin-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: start; }
+.admin-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 28px; box-shadow: var(--shadow); }
+.admin-card h2 { font-size: 21px; margin: 0 0 10px; }
+.admin-card > p, .admin-card fieldset > p:not(.field-error) { color: var(--muted); font-size: 13px; line-height: 1.65; }
+.admin-card a { color: var(--accent-dark); font-size: 13px; }
+.admin-card a.btn-primary { color: var(--on-accent); }
+.section-number { color: var(--accent-dark); background: var(--accent-soft); width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 12px; font-weight: 800; margin-bottom: 18px; }
+.admin-card fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.admin-card fieldset:disabled { opacity: .65; }
+.folder-picker { display: flex; position: relative; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 165px; padding: 22px; margin: 22px 0 12px; border: 1.5px dashed var(--accent); border-radius: 16px; background: var(--accent-soft); cursor: pointer; text-align: center; }
+.folder-picker > span:last-of-type { font-size: 12px; color: var(--muted); }
+.folder-icon { font-size: 32px; color: var(--accent-dark); }
+.folder-picker input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.folder-picker:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+.upload-actions, .job-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.package-preview { padding: 18px; background: var(--surface-2); border-radius: 14px; margin-top: 20px; }
+.package-preview h3 { margin: 0 0 8px; font-size: 18px; overflow-wrap: anywhere; }
+.package-preview p { font-size: 12px; line-height: 1.7; color: var(--muted); }
+#fileList { list-style: none; margin: 14px 0 0; padding: 0; max-height: 170px; overflow: auto; }
+#fileList li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; font-size: 12px; }
+#fileList li span { overflow-wrap: anywhere; }
+#fileList small { color: var(--muted); white-space: nowrap; }
+.pipeline { padding: 0; margin: 28px 0; list-style: none; }
+.pipeline li { display: flex; gap: 14px; align-items: center; position: relative; padding-bottom: 27px; }
+.pipeline li:last-child { padding-bottom: 0; }
+.pipeline li > span { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--muted); font-size: 13px; }
+.pipeline li:not(:last-child)::after { content: ''; position: absolute; left: 16px; top: 38px; height: 19px; border-left: 1px solid var(--line); }
+.pipeline b { font-size: 13px; }
+.pipeline small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.pipeline li.active > span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.pipeline li.done > span { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+#jobStatus { border-top: 1px solid var(--line); padding-top: 22px; }
+#statusTitle { font-size: 16px; margin: 0 0 8px; }
+#statusDetail { font-size: 13px; line-height: 1.65; color: var(--muted); overflow-wrap: anywhere; }
+#uploadProgress { width: 100%; margin-top: 16px; accent-color: var(--accent); }
+.job-steps { padding: 0; list-style: none; margin: 16px 0 0; font-size: 11px; color: var(--muted); }
+.job-steps li { margin: 7px 0; overflow-wrap: anywhere; }
+.login-card { max-width: 480px; }
+.login-card .btn-primary { margin-top: 20px; width: 100%; }
+.field-error:empty { display: none; }
+[hidden] { display: none !important; }
+@media (max-width: 760px) { .admin-grid { grid-template-columns: 1fr; } .admin-card { padding: 22px; } .admin-main { padding: 18px 16px; } .admin-header { padding: 22px 16px; } .admin-brand span { display: block; margin: 5px 0 0; } }

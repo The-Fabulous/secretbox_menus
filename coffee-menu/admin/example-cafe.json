@@ -1,0 +1,11 @@
+{
+  "name": "Моя кофейня",
+  "address": null,
+  "city": null,
+  "hours": null,
+  "logo": null,
+  "modules": {
+    "pickup": { "enabled": false },
+    "delivery": { "enabled": false }
+  }
+}

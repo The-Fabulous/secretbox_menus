@@ -305,6 +305,7 @@
           </a>` : ''}
         ${cafe && state.table ? `<span class="table-pill">🪑 ${esc(T('table', { n: state.table }))}</span>` : ''}
         ${state.staff ? `
+          <a class="api-chip" href="admin.html">Управление меню</a>
           <button class="api-chip" type="button" data-api-open title="${esc(T('api_title'))}">
             <span class="api-dot ${state.api.status}"></span>${T('api_chip')}
           </button>` : ''}

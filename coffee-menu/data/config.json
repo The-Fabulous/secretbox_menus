@@ -1,5 +1,6 @@
 {
   "_comment": "gemma_url — сервер Gemma: индикатор проверяет, есть ли с ним связь (ключ для этого не нужен). gemma_health_url — посредник из папки gemma-health для полной проверки модели и ключа, например https://gemma-health.<аккаунт>.workers.dev/health. Ключа здесь нет и быть не должно.",
   "gemma_url": "https://llm.alem.ai/v1",
-  "gemma_health_url": null
+  "gemma_health_url": null,
+  "admin_api_url": null
 }

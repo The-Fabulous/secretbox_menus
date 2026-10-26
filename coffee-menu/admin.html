@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Новая вкладка — Secretbox</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin/admin.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header"><a href="./" class="admin-brand">Secretbox <span>для сотрудников</span></a><button id="logout" class="btn-ghost small" hidden>Выйти</button></header>
+  <main class="admin-main">
+    <div class="admin-intro"><p class="eyebrow">ИЗ СКРИНШОТОВ В МЕНЮ</p><h1>Новая вкладка<br>без ручной сборки</h1><p>Выберите папку заведения. Мы распознаем меню, соберём фотографии и добавим готовую вкладку на сайт.</p></div>
+    <section id="setup" class="admin-card" hidden><h2>Нужно подключить сервер</h2><p>Интерфейс готов. Для загрузки папок администратору нужно один раз подключить защищённый сервер панели.</p><a href="https://github.com/The-Fabulous/secretbox_menus/blob/main/menu-admin/README.md" target="_blank" rel="noopener">Инструкция по подключению ↗</a></section>
+    <form id="loginForm" class="admin-card login-card" hidden>
+      <div class="section-number">01</div><h2>Вход для сотрудников</h2><p>Используйте общий пароль команды. После обновления страницы потребуется войти снова.</p>
+      <label class="field-label" for="password">Пароль панели</label><input class="text-input" id="password" type="password" autocomplete="current-password" required maxlength="512">
+      <button class="btn-primary" id="loginButton">Войти</button><p id="loginError" class="field-error" role="alert"></p>
+    </form>
+    <div id="workspace" class="admin-grid" hidden>
+      <form id="uploadForm" class="admin-card">
+        <fieldset id="uploadFields">
+          <div class="section-number">01</div><h2>Исходная папка</h2><p>Одна папка — одно заведение. Внутри: <code>cafe.json</code>, скрины меню и, при необходимости, логотип.</p>
+          <label class="folder-picker" for="folder"><span class="folder-icon" aria-hidden="true">▣</span><strong>Выбрать папку заведения</strong><span>JPG, PNG, WebP, BMP · до 20 МБ</span><input id="folder" type="file" webkitdirectory multiple aria-label="Выбрать папку заведения"></label>
+          <label class="field-label" for="cafeId">Имя папки новой вкладки</label><input class="text-input" id="cafeId" maxlength="64" placeholder="например, coffee_house" pattern="[a-z][a-z0-9_]{0,63}" required autocomplete="off" spellcheck="false">
+          <p class="hint">Это постоянная часть ссылки. Название для гостей берётся из cafe.json.</p>
+          <div id="preview" class="package-preview" hidden><h3 id="venueName"></h3><p id="packageSummary"></p><p id="moduleSummary"></p><ul id="fileList"></ul></div>
+          <p id="packageError" class="field-error" role="alert"></p>
+          <div class="upload-actions"><button id="createButton" class="btn-primary" disabled>Создать вкладку</button><a href="admin/example-cafe.json" download="cafe.json">Скачать пример конфига</a></div>
+          <p class="hint">Исходники будут загружены в репозиторий сайта. Существующие вкладки не заменяются.</p>
+        </fieldset>
+        <p id="uploadError" class="field-error" role="alert"></p>
+      </form>
+      <section class="admin-card progress-card" aria-labelledby="progressTitle">
+        <div class="section-number">02</div><h2 id="progressTitle">От папки до вкладки</h2><p>Обработка продолжится на сервере, даже если закрыть эту страницу.</p>
+        <ol class="pipeline"><li data-stage="upload"><span>1</span><div><b>Загрузка исходников</b><small>Скриншоты и конфиг заведения</small></div></li><li data-stage="recognize"><span>2</span><div><b>Распознавание меню</b><small>Позиции, цены и фотографии</small></div></li><li data-stage="publish"><span>3</span><div><b>Публикация вкладки</b><small>Готовое меню появится на сайте</small></div></li></ol>
+        <div id="jobStatus" role="status" aria-live="polite"><h3 id="statusTitle">Всё начинается с папки</h3><p id="statusDetail">Выберите исходники слева и проверьте название заведения.</p></div>
+        <progress id="uploadProgress" max="100" value="0" hidden aria-label="Передача файлов"></progress>
+        <ul id="jobSteps" class="job-steps"></ul>
+        <div class="job-actions"><a id="openMenu" class="btn-primary" hidden>Открыть новую вкладку ↗</a><button id="refresh" class="btn-ghost small" hidden>Обновить статус</button><button id="retry" class="btn-ghost small" hidden>Повторить обработку</button><button id="newUpload" class="btn-ghost small" hidden>Ещё одно заведение</button><a id="runLink" target="_blank" rel="noopener" hidden>Подробности обработки ↗</a></div>
+      </section>
+    </div>
+  </main>
+  <script type="module" src="admin/admin.mjs"></script>
+</body>
+</html>

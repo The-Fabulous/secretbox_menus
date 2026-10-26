@@ -49,13 +49,15 @@ class TabTests(unittest.TestCase):
         return tiles
 
     def snapshot(self):
-        return {p.relative_to(self.tab): p.read_bytes() for p in self.tab.rglob('*') if p.is_file()}
+        # raw/ — обновляемый кеш распознавания, а не опубликованные ресурсы вкладки.
+        return {p.relative_to(self.tab): p.read_bytes() for p in self.tab.rglob('*')
+                if p.is_file() and p.relative_to(self.tab).parts[0] != 'raw'}
 
     def test_default_creates_complete_tab_and_updates_without_duplicate(self):
         tiles = self.run_driver()
         self.assertEqual([call.args[0].name for call in tiles.call_args_list], ['menu.jpg'])
         self.assertEqual((self.tab / 'logo.png').read_bytes(), b'logo fixture')
-        self.assertTrue((self.tab / 'raw' / 'menu.jpg.json').exists())
+        self.assertTrue((self.tab / 'raw' / 'menu.json').exists())
         self.assertEqual(driver.load_json(self.tab / 'cafe.json')['name'], 'Coffee House')
         driver.write_json(self.source / 'cafe.json', {'name': 'New name', 'city': 'Алматы'})
         self.run_driver()
@@ -124,7 +126,7 @@ class TabTests(unittest.TestCase):
 
         menu = {'categories': [], 'items': [{'id': 'item_latte', 'image_url': None}]}
         driver.write_tab(self.tab, 'coffee_house', {'name': 'Coffee House'}, menu,
-                         {'item_latte': Crop()}, {})
+                         {'item_latte': Crop()})
         item = driver.load_json(self.tab / 'menu.json')['items'][0]
         self.assertEqual(item['image_url'], 'images/item_latte.jpg')
         self.assertEqual((self.tab / item['image_url']).read_bytes(), b'image fixture')

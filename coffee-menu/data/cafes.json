@@ -68,6 +68,20 @@
       "theme": {
         "accent": null
       }
+    },
+    {
+      "id": "zebra_coffee",
+      "name": "Zebra Coffee",
+      "file": "cafes/zebra_coffee.json",
+      "logo": null,
+      "address": null,
+      "city": null,
+      "hours": null,
+      "currency": "KZT",
+      "theme": {
+        "accent": null
+      },
+      "source": "photos"
     }
   ]
 }

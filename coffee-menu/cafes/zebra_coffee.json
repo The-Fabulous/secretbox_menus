@@ -1,0 +1,277 @@
+{
+  "categories": [
+    {
+      "id": "coffee",
+      "name": "Кофе",
+      "icon": "☕",
+      "order": 1
+    },
+    {
+      "id": "tea",
+      "name": "Чай",
+      "icon": "🍵",
+      "order": 2
+    },
+    {
+      "id": "cold_drinks",
+      "name": "Холодные напитки",
+      "icon": "🧊",
+      "order": 3
+    }
+  ],
+  "modifier_groups": [],
+  "items": [
+    {
+      "id": "item_amerikano",
+      "category_id": "coffee",
+      "name": "Американо",
+      "image_url": "pictures/items/zebra_coffee/item_amerikano.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_amerikano_std",
+          "measure": null,
+          "price": 790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kapuchino",
+      "category_id": "coffee",
+      "name": "Капучино",
+      "image_url": "pictures/items/zebra_coffee/item_kapuchino.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kapuchino_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_flet_uayt",
+      "category_id": "coffee",
+      "name": "Флэт Уайт",
+      "image_url": "pictures/items/zebra_coffee/item_flet_uayt.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_flet_uayt_std",
+          "measure": null,
+          "price": 1090,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_raf_klassik",
+      "category_id": "coffee",
+      "name": "Раф классик",
+      "image_url": "pictures/items/zebra_coffee/item_raf_klassik.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_raf_klassik_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_raf_lavandovyy",
+      "category_id": "coffee",
+      "name": "Раф лавандовый",
+      "image_url": "pictures/items/zebra_coffee/item_raf_lavandovyy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_raf_lavandovyy_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_latte",
+      "category_id": "coffee",
+      "name": "Латте",
+      "image_url": "pictures/items/zebra_coffee/item_latte.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_latte_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chay_chernyy",
+      "category_id": "tea",
+      "name": "Чай черный",
+      "image_url": "pictures/items/zebra_coffee/item_chay_chernyy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chay_chernyy_std",
+          "measure": null,
+          "price": 300,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chay_zelenyy",
+      "category_id": "tea",
+      "name": "Чай зеленый",
+      "image_url": "pictures/items/zebra_coffee/item_chay_zelenyy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chay_zelenyy_std",
+          "measure": null,
+          "price": 300,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_zhasminovyy_chay",
+      "category_id": "tea",
+      "name": "Жасминовый чай",
+      "image_url": "pictures/items/zebra_coffee/item_zhasminovyy_chay.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_zhasminovyy_chay_std",
+          "measure": null,
+          "price": 890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_espresso_tonic",
+      "category_id": "cold_drinks",
+      "name": "Espresso Tonic",
+      "image_url": "pictures/items/zebra_coffee/item_espresso_tonic.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_espresso_tonic_std",
+          "measure": null,
+          "price": 1290,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_ice_latte_vanilla",
+      "category_id": "cold_drinks",
+      "name": "Ice Latte Vanilla",
+      "image_url": "pictures/items/zebra_coffee/item_ice_latte_vanilla.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_ice_latte_vanilla_std",
+          "measure": null,
+          "price": 1290,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_ice_tea_peach",
+      "category_id": "cold_drinks",
+      "name": "Ice Tea Peach",
+      "image_url": "pictures/items/zebra_coffee/item_ice_tea_peach.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_ice_tea_peach_std",
+          "measure": null,
+          "price": 1290,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_latte_golubaya_matcha",
+      "category_id": "cold_drinks",
+      "name": "Латте голубая матча",
+      "image_url": "pictures/items/zebra_coffee/item_latte_golubaya_matcha.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_latte_golubaya_matcha_std",
+          "measure": null,
+          "price": 1290,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_cold_brew_klassik",
+      "category_id": "coffee",
+      "name": "Cold Brew Классик",
+      "image_url": "pictures/items/zebra_coffee/item_cold_brew_klassik.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_cold_brew_klassik_std",
+          "measure": null,
+          "price": 1290,
+          "nutrition": null
+        }
+      ]
+    }
+  ]
+}

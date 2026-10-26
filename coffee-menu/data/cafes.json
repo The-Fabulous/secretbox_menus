@@ -82,6 +82,20 @@
         "accent": null
       },
       "source": "photos"
+    },
+    {
+      "id": "dodo_pizza",
+      "name": "Dodo Pizza",
+      "file": "cafes/dodo_pizza.json",
+      "logo": null,
+      "address": null,
+      "city": null,
+      "hours": null,
+      "currency": "KZT",
+      "theme": {
+        "accent": null
+      },
+      "source": "photos"
     }
   ]
 }

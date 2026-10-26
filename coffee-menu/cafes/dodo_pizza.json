@@ -1,0 +1,2239 @@
+{
+  "categories": [
+    {
+      "id": "combo",
+      "name": "Комбо",
+      "icon": "✨",
+      "order": 1
+    },
+    {
+      "id": "snacks",
+      "name": "Закуски",
+      "icon": "🥪",
+      "order": 2
+    },
+    {
+      "id": "cold_drinks",
+      "name": "Холодные напитки",
+      "icon": "🧊",
+      "order": 3
+    },
+    {
+      "id": "hot_meals",
+      "name": "Пиццы",
+      "icon": "🍲",
+      "order": 4
+    },
+    {
+      "id": "coffee",
+      "name": "Кофе",
+      "icon": "☕",
+      "order": 5
+    },
+    {
+      "id": "cocoa",
+      "name": "Какао и шоколад",
+      "icon": "🍫",
+      "order": 6
+    },
+    {
+      "id": "tea",
+      "name": "Чай",
+      "icon": "🍵",
+      "order": 7
+    },
+    {
+      "id": "breakfast",
+      "name": "Завтраки",
+      "icon": "🍳",
+      "order": 8
+    },
+    {
+      "id": "desserts",
+      "name": "Десерты",
+      "icon": "🍰",
+      "order": 9
+    }
+  ],
+  "modifier_groups": [],
+  "items": [
+    {
+      "id": "item_3_pitstsy",
+      "category_id": "combo",
+      "name": "3 пиццы",
+      "image_url": "pictures/items/dodo_pizza/item_3_pitstsy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_3_pitstsy_std",
+          "measure": null,
+          "price": 9190,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kartofel_iz_pechi",
+      "category_id": "snacks",
+      "name": "Картофель из печи",
+      "image_url": "pictures/items/dodo_pizza/item_kartofel_iz_pechi.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kartofel_iz_pechi_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_coca_cola",
+      "category_id": "cold_drinks",
+      "name": "Coca-Cola",
+      "image_url": "pictures/items/dodo_pizza/item_coca_cola.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_coca_cola_std",
+          "measure": null,
+          "price": 700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_3_pitstsy_25_sm",
+      "category_id": "combo",
+      "name": "3 пиццы 25 см",
+      "image_url": "pictures/items/dodo_pizza/item_3_pitstsy_25_sm.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_3_pitstsy_25_sm_std",
+          "measure": "25 см",
+          "price": 5990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_2_pitstsy_i_napitok",
+      "category_id": "combo",
+      "name": "2 пиццы и напиток",
+      "image_url": "pictures/items/dodo_pizza/item_2_pitstsy_i_napitok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_2_pitstsy_i_napitok_std",
+          "measure": null,
+          "price": 4590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kurinye_naggetsy",
+      "category_id": "snacks",
+      "name": "Куриные наггетсы",
+      "image_url": "pictures/items/dodo_pizza/item_kurinye_naggetsy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kurinye_naggetsy_std",
+          "measure": null,
+          "price": 1150,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_blek_pepper_bif_pitstsa",
+      "category_id": "hot_meals",
+      "name": "Блэк Пеппер Биф пицца",
+      "image_url": "pictures/items/dodo_pizza/item_blek_pepper_bif_pitstsa.jpg",
+      "description": "Рваная говядина с пикантным перечным соусом - насыщенное сочетание с ярким мясным вкусом.",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_blek_pepper_bif_pitstsa_std",
+          "measure": null,
+          "price": 2350,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pepperoni_mishka",
+      "category_id": "hot_meals",
+      "name": "Пепперони мишка",
+      "image_url": "pictures/items/dodo_pizza/item_pepperoni_mishka.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pepperoni_mishka_std",
+          "measure": null,
+          "price": 2490,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_mishka_s_fri",
+      "category_id": "hot_meals",
+      "name": "Мишка с фри",
+      "image_url": "pictures/items/dodo_pizza/item_mishka_s_fri.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_mishka_s_fri_std",
+          "measure": null,
+          "price": 2490,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_brusnika_i_tsyplenok",
+      "category_id": "hot_meals",
+      "name": "Брусника и цыпленок",
+      "image_url": "pictures/items/dodo_pizza/item_brusnika_i_tsyplenok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_brusnika_i_tsyplenok_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pitstsa_tom_yam_s_krevetkami",
+      "category_id": "hot_meals",
+      "name": "Пицца Том ям с креветками 🌶️",
+      "image_url": "pictures/items/dodo_pizza/item_pitstsa_tom_yam_s_krevetkami.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pitstsa_tom_yam_s_krevetkami_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pitstsa_tom_yam_s_tsyplenkom",
+      "category_id": "hot_meals",
+      "name": "Пицца Том ям с цыпленком 🌶️",
+      "image_url": "pictures/items/dodo_pizza/item_pitstsa_tom_yam_s_tsyplenkom.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pitstsa_tom_yam_s_tsyplenkom_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_vetchina_i_griby",
+      "category_id": "hot_meals",
+      "name": "Ветчина и грибы",
+      "image_url": "pictures/items/dodo_pizza/item_vetchina_i_griby.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_vetchina_i_griby_std",
+          "measure": null,
+          "price": 1890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_margarita_s_pesto",
+      "category_id": "hot_meals",
+      "name": "Маргарита с Песто 🍃",
+      "image_url": "pictures/items/dodo_pizza/item_margarita_s_pesto.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_margarita_s_pesto_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sladkaya_pitstsa_pirog",
+      "category_id": "hot_meals",
+      "name": "Сладкая пицца пирог",
+      "image_url": "pictures/items/dodo_pizza/item_sladkaya_pitstsa_pirog.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sladkaya_pitstsa_pirog_std",
+          "measure": null,
+          "price": 1490,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chorizo_fresh",
+      "category_id": "hot_meals",
+      "name": "Чоризо фреш 🌶️",
+      "image_url": "pictures/items/dodo_pizza/item_chorizo_fresh.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chorizo_fresh_std",
+          "measure": null,
+          "price": 1590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_syrnaya",
+      "category_id": "hot_meals",
+      "name": "Сырная 🍃",
+      "image_url": "pictures/items/dodo_pizza/item_syrnaya.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_syrnaya_std",
+          "measure": null,
+          "price": 1590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chesnochnyy_tsyplenok",
+      "category_id": "hot_meals",
+      "name": "Чесночный цыпленок",
+      "image_url": "pictures/items/dodo_pizza/item_chesnochnyy_tsyplenok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chesnochnyy_tsyplenok_std",
+          "measure": null,
+          "price": 1590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chiken_bomboni",
+      "category_id": "hot_meals",
+      "name": "Чикен бомбони",
+      "image_url": "pictures/items/dodo_pizza/item_chiken_bomboni.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chiken_bomboni_std",
+          "measure": null,
+          "price": 3450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_teriyaki",
+      "category_id": "hot_meals",
+      "name": "Терияки",
+      "image_url": "pictures/items/dodo_pizza/item_teriyaki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_teriyaki_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_invictus",
+      "category_id": "hot_meals",
+      "name": "Invictus",
+      "image_url": "pictures/items/dodo_pizza/item_invictus.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_invictus_std",
+          "measure": null,
+          "price": 3990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pitstsa_iz_polovinok",
+      "category_id": "hot_meals",
+      "name": "Пицца из половинок",
+      "image_url": "pictures/items/dodo_pizza/item_pitstsa_iz_polovinok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pitstsa_iz_polovinok_std",
+          "measure": null,
+          "price": 4150,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_krevetki_s_pesto",
+      "category_id": "hot_meals",
+      "name": "Креветки с песто",
+      "image_url": "pictures/items/dodo_pizza/item_krevetki_s_pesto.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_krevetki_s_pesto_std",
+          "measure": null,
+          "price": 2790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_vetchina_i_syr",
+      "category_id": "hot_meals",
+      "name": "Ветчина и сыр",
+      "image_url": "pictures/items/dodo_pizza/item_vetchina_i_syr.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_vetchina_i_syr_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dvoynoy_tsyplenok",
+      "category_id": "hot_meals",
+      "name": "Двойной цыпленок",
+      "image_url": "pictures/items/dodo_pizza/item_dvoynoy_tsyplenok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dvoynoy_tsyplenok_std",
+          "measure": null,
+          "price": 1890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_arriva",
+      "category_id": "hot_meals",
+      "name": "Аррива!",
+      "image_url": "pictures/items/dodo_pizza/item_arriva.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_arriva_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodo_miks",
+      "category_id": "hot_meals",
+      "name": "Додо микс",
+      "image_url": "pictures/items/dodo_pizza/item_dodo_miks.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodo_miks_std",
+          "measure": null,
+          "price": 3450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pesto",
+      "category_id": "hot_meals",
+      "name": "Песто",
+      "image_url": "pictures/items/dodo_pizza/item_pesto.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pesto_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_syrnyy_tsyplenok",
+      "category_id": "hot_meals",
+      "name": "Сырный цыпленок",
+      "image_url": "pictures/items/dodo_pizza/item_syrnyy_tsyplenok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_syrnyy_tsyplenok_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_zhyulen",
+      "category_id": "hot_meals",
+      "name": "Жюльен",
+      "image_url": "pictures/items/dodo_pizza/item_zhyulen.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_zhyulen_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chetyre_sezona",
+      "category_id": "hot_meals",
+      "name": "Четыре сезона",
+      "image_url": "pictures/items/dodo_pizza/item_chetyre_sezona.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chetyre_sezona_std",
+          "measure": null,
+          "price": 3250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_burger_pitstsa",
+      "category_id": "hot_meals",
+      "name": "Бургер-пицца",
+      "image_url": "pictures/items/dodo_pizza/item_burger_pitstsa.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_burger_pitstsa_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_myasnaya",
+      "category_id": "hot_meals",
+      "name": "Мясная",
+      "image_url": "pictures/items/dodo_pizza/item_myasnaya.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_myasnaya_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pepperoni_s_gribami",
+      "category_id": "hot_meals",
+      "name": "Пепперони с грибами",
+      "image_url": "pictures/items/dodo_pizza/item_pepperoni_s_gribami.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pepperoni_s_gribami_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_tsyplenok_barbekyu",
+      "category_id": "hot_meals",
+      "name": "Цыпленок барбекю",
+      "image_url": "pictures/items/dodo_pizza/item_tsyplenok_barbekyu.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_tsyplenok_barbekyu_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_margarita",
+      "category_id": "hot_meals",
+      "name": "Маргарита",
+      "image_url": "pictures/items/dodo_pizza/item_margarita.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_margarita_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kolbaski_barbekyu",
+      "category_id": "hot_meals",
+      "name": "Колбаски Барбекю",
+      "image_url": "pictures/items/dodo_pizza/item_kolbaski_barbekyu.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kolbaski_barbekyu_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodo",
+      "category_id": "hot_meals",
+      "name": "Додо",
+      "image_url": "pictures/items/dodo_pizza/item_dodo.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodo_std",
+          "measure": null,
+          "price": 2790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dvoynaya_pepperoni",
+      "category_id": "hot_meals",
+      "name": "Двойная пепперони",
+      "image_url": "pictures/items/dodo_pizza/item_dvoynaya_pepperoni.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dvoynaya_pepperoni_std",
+          "measure": null,
+          "price": 2450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pitstsa_konstruktor",
+      "category_id": "hot_meals",
+      "name": "Пицца-конструктор",
+      "image_url": "pictures/items/dodo_pizza/item_pitstsa_konstruktor.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pitstsa_konstruktor_std",
+          "measure": null,
+          "price": 2290,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pepperoni_fresh",
+      "category_id": "hot_meals",
+      "name": "Пепперони фреш",
+      "image_url": "pictures/items/dodo_pizza/item_pepperoni_fresh.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pepperoni_fresh_std",
+          "measure": null,
+          "price": 1850,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pepperoni",
+      "category_id": "hot_meals",
+      "name": "Пепперони",
+      "image_url": "pictures/items/dodo_pizza/item_pepperoni.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pepperoni_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kuritsa_i_griby",
+      "category_id": "hot_meals",
+      "name": "Курица и грибы",
+      "image_url": "pictures/items/dodo_pizza/item_kuritsa_i_griby.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kuritsa_i_griby_std",
+          "measure": null,
+          "price": 1890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_barbekyu_bum",
+      "category_id": "hot_meals",
+      "name": "Барбекю Бум",
+      "image_url": "pictures/items/dodo_pizza/item_barbekyu_bum.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_barbekyu_bum_std",
+          "measure": null,
+          "price": 1890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_payda_kombo",
+      "category_id": "combo",
+      "name": "Пайда-комбо",
+      "image_url": "pictures/items/dodo_pizza/item_payda_kombo.jpg",
+      "description": "Покет-пицца, картофель из печи, сырный соус и напиток по лучшей цене",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_payda_kombo_std",
+          "measure": null,
+          "price": 3300,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_poket_pitstsa_kombo",
+      "category_id": "combo",
+      "name": "Покет-пицца комбо",
+      "image_url": "pictures/items/dodo_pizza/item_poket_pitstsa_kombo.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_poket_pitstsa_kombo_std",
+          "measure": null,
+          "price": 2100,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_solo_kombo",
+      "category_id": "combo",
+      "name": "Соло комбо",
+      "image_url": "pictures/items/dodo_pizza/item_solo_kombo.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_solo_kombo_std",
+          "measure": null,
+          "price": 1600,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_lanch_boks_kombo",
+      "category_id": "combo",
+      "name": "Ланч бокс комбо",
+      "image_url": "pictures/items/dodo_pizza/item_lanch_boks_kombo.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_lanch_boks_kombo_std",
+          "measure": null,
+          "price": 3590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodster_kartofel_iz_pechi_i_napitok",
+      "category_id": "combo",
+      "name": "Додстер, картофель из печи и напиток",
+      "image_url": "pictures/items/dodo_pizza/item_dodster_kartofel_iz_pechi_i_napitok.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodster_kartofel_iz_pechi_i_napitok_std",
+          "measure": null,
+          "price": 2790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodo_boks_s_kartonnymi_pazlami",
+      "category_id": "combo",
+      "name": "Додо Бокс с картонными пазлами",
+      "image_url": "pictures/items/dodo_pizza/item_dodo_boks_s_kartonnymi_pazlami.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodo_boks_s_kartonnymi_pazlami_std",
+          "measure": null,
+          "price": 2700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodo_boks_s_pitstsey",
+      "category_id": "combo",
+      "name": "Додо Бокс с пиццей",
+      "image_url": "pictures/items/dodo_pizza/item_dodo_boks_s_pitstsey.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodo_boks_s_pitstsey_std",
+          "measure": null,
+          "price": 2700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_2_pitstsy",
+      "category_id": "combo",
+      "name": "2 пиццы",
+      "image_url": "pictures/items/dodo_pizza/item_2_pitstsy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_2_pitstsy_std",
+          "measure": null,
+          "price": 5690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kombo_za_3990",
+      "category_id": "combo",
+      "name": "Комбо за 3990 ₸",
+      "image_url": "pictures/items/dodo_pizza/item_kombo_za_3990.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kombo_za_3990_std",
+          "measure": null,
+          "price": 3990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_4_zakuski",
+      "category_id": "combo",
+      "name": "4 Закуски",
+      "image_url": "pictures/items/dodo_pizza/item_4_zakuski.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_4_zakuski_std",
+          "measure": null,
+          "price": 6550,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_salat_i_zakuska",
+      "category_id": "combo",
+      "name": "Салат и закуска",
+      "image_url": "pictures/items/dodo_pizza/item_salat_i_zakuska.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_salat_i_zakuska_std",
+          "measure": null,
+          "price": 3450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_3_pitstsy_35_sm",
+      "category_id": "combo",
+      "name": "3 пиццы 35 см",
+      "image_url": "pictures/items/dodo_pizza/item_3_pitstsy_35_sm.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_3_pitstsy_35_sm_std",
+          "measure": null,
+          "price": 10750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_5_pitsts",
+      "category_id": "combo",
+      "name": "5 пицц",
+      "image_url": "pictures/items/dodo_pizza/item_5_pitsts.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_5_pitsts_std",
+          "measure": null,
+          "price": 15100,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_7_pitsts",
+      "category_id": "combo",
+      "name": "7 пицц",
+      "image_url": "pictures/items/dodo_pizza/item_7_pitsts.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_7_pitsts_std",
+          "measure": null,
+          "price": 19650,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_10_srednih_pitsts",
+      "category_id": "combo",
+      "name": "10 средних пицц",
+      "image_url": "pictures/items/dodo_pizza/item_10_srednih_pitsts.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_10_srednih_pitsts_std",
+          "measure": null,
+          "price": 27690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_chiken_boks",
+      "category_id": "combo",
+      "name": "Чикен Бокс",
+      "image_url": "pictures/items/dodo_pizza/item_chiken_boks.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_chiken_boks_std",
+          "measure": null,
+          "price": 2050,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_blek_pepper_bif_pasta",
+      "category_id": "snacks",
+      "name": "Блэк Пеппер Биф паста 🌶️",
+      "image_url": "pictures/items/dodo_pizza/item_blek_pepper_bif_pasta.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_blek_pepper_bif_pasta_std",
+          "measure": null,
+          "price": 2990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pasta_s_kuritsey_i_syrom",
+      "category_id": "snacks",
+      "name": "Паста с курицей и сыром",
+      "image_url": "pictures/items/dodo_pizza/item_pasta_s_kuritsey_i_syrom.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pasta_s_kuritsey_i_syrom_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_blek_pepper_bif_pasta_2",
+      "category_id": "snacks",
+      "name": "Блэк Пеппер Биф паста",
+      "image_url": "pictures/items/dodo_pizza/item_blek_pepper_bif_pasta_2.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_blek_pepper_bif_pasta_2_std",
+          "measure": null,
+          "price": 2990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pasta_s_syrom",
+      "category_id": "snacks",
+      "name": "Паста с сыром",
+      "image_url": "pictures/items/dodo_pizza/item_pasta_s_syrom.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pasta_s_syrom_std",
+          "measure": null,
+          "price": 1790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_poket_pitstsa_vetchina_i_syr",
+      "category_id": "snacks",
+      "name": "Покет-пицца ветчина и сыр",
+      "image_url": "pictures/items/dodo_pizza/item_poket_pitstsa_vetchina_i_syr.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_poket_pitstsa_vetchina_i_syr_std",
+          "measure": null,
+          "price": 1750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_poket_pitstsa_chill_grill",
+      "category_id": "snacks",
+      "name": "Покет-пицца Чилл Грилл",
+      "image_url": "pictures/items/dodo_pizza/item_poket_pitstsa_chill_grill.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_poket_pitstsa_chill_grill_std",
+          "measure": null,
+          "price": 1750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_poket_pitstsa_chorizo_barbekyu",
+      "category_id": "snacks",
+      "name": "Покет-пицца чоризо барбекю",
+      "image_url": "pictures/items/dodo_pizza/item_poket_pitstsa_chorizo_barbekyu.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_poket_pitstsa_chorizo_barbekyu_std",
+          "measure": null,
+          "price": 1750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodster_teriyaki",
+      "category_id": "snacks",
+      "name": "Додстер Терияки",
+      "image_url": "pictures/items/dodo_pizza/item_dodster_teriyaki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodster_teriyaki_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodster",
+      "category_id": "snacks",
+      "name": "Додстер",
+      "image_url": "pictures/items/dodo_pizza/item_dodster.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodster_std",
+          "measure": null,
+          "price": 1890,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodster_s_vetchinoy",
+      "category_id": "snacks",
+      "name": "Додстер с ветчиной",
+      "image_url": "pictures/items/dodo_pizza/item_dodster_s_vetchinoy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodster_s_vetchinoy_std",
+          "measure": null,
+          "price": 1590,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_supermyasnoy_dodster",
+      "category_id": "snacks",
+      "name": "Супермясной Додстер",
+      "image_url": "pictures/items/dodo_pizza/item_supermyasnoy_dodster.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_supermyasnoy_dodster_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_dodster_chill_grill",
+      "category_id": "snacks",
+      "name": "Додстер Чилл Грилл",
+      "image_url": "pictures/items/dodo_pizza/item_dodster_chill_grill.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_dodster_chill_grill_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_tsezar_roll",
+      "category_id": "snacks",
+      "name": "Цезарь ролл",
+      "image_url": "pictures/items/dodo_pizza/item_tsezar_roll.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_tsezar_roll_std",
+          "measure": null,
+          "price": 1690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_denvich_vetchina_i_syr",
+      "category_id": "snacks",
+      "name": "Дэнвич ветчина и сыр",
+      "image_url": "pictures/items/dodo_pizza/item_denvich_vetchina_i_syr.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_denvich_vetchina_i_syr_std",
+          "measure": null,
+          "price": 2090,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_denvich_chorizo_barbekyu",
+      "category_id": "snacks",
+      "name": "Дэнвич чоризо барбекю",
+      "image_url": "pictures/items/dodo_pizza/item_denvich_chorizo_barbekyu.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_denvich_chorizo_barbekyu_std",
+          "measure": null,
+          "price": 2090,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_gribnoy_starter",
+      "category_id": "snacks",
+      "name": "Грибной Стартер",
+      "image_url": "pictures/items/dodo_pizza/item_gribnoy_starter.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_gribnoy_starter_std",
+          "measure": null,
+          "price": 1650,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_syrnyy_starter",
+      "category_id": "snacks",
+      "name": "Сырный Стартер",
+      "image_url": "pictures/items/dodo_pizza/item_syrnyy_starter.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_syrnyy_starter_std",
+          "measure": null,
+          "price": 1650,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_stripsy",
+      "category_id": "snacks",
+      "name": "Стрипсы",
+      "image_url": "pictures/items/dodo_pizza/item_stripsy.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_stripsy_std",
+          "measure": null,
+          "price": 1690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_stripsy_ostrye",
+      "category_id": "snacks",
+      "name": "Стрипсы острые",
+      "image_url": "pictures/items/dodo_pizza/item_stripsy_ostrye.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_stripsy_ostrye_std",
+          "measure": null,
+          "price": 1690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kartofelnye_dolki",
+      "category_id": "snacks",
+      "name": "Картофельные дольки",
+      "image_url": "pictures/items/dodo_pizza/item_kartofelnye_dolki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kartofelnye_dolki_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kartofel_iz_pechi_s_sousom",
+      "category_id": "snacks",
+      "name": "Картофель из печи с соусом",
+      "image_url": "pictures/items/dodo_pizza/item_kartofel_iz_pechi_s_sousom.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kartofel_iz_pechi_s_sousom_std",
+          "measure": null,
+          "price": 1350,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kartofelnye_smayliki",
+      "category_id": "snacks",
+      "name": "Картофельные смайлики",
+      "image_url": "pictures/items/dodo_pizza/item_kartofelnye_smayliki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kartofelnye_smayliki_std",
+          "measure": null,
+          "price": 750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_salat_tsezar",
+      "category_id": "snacks",
+      "name": "Салат Цезарь",
+      "image_url": "pictures/items/dodo_pizza/item_salat_tsezar.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_salat_tsezar_std",
+          "measure": null,
+          "price": 2250,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pasta_teriyaki",
+      "category_id": "hot_meals",
+      "name": "Паста Терияки",
+      "image_url": "pictures/items/dodo_pizza/item_pasta_teriyaki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pasta_teriyaki_std",
+          "measure": null,
+          "price": 2350,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pasta_krevetka_pesto",
+      "category_id": "hot_meals",
+      "name": "Паста Креветка & Песто",
+      "image_url": "pictures/items/dodo_pizza/item_pasta_krevetka_pesto.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pasta_krevetka_pesto_std",
+          "measure": null,
+          "price": 2990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_pasta_pesto",
+      "category_id": "hot_meals",
+      "name": "Паста Песто",
+      "image_url": "pictures/items/dodo_pizza/item_pasta_pesto.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_pasta_pesto_std",
+          "measure": null,
+          "price": 2790,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kurinye_kusochki",
+      "category_id": "hot_meals",
+      "name": "Куриные кусочки",
+      "image_url": "pictures/items/dodo_pizza/item_kurinye_kusochki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kurinye_kusochki_std",
+          "measure": null,
+          "price": 1690,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_krylya_v_souse_barbekyu",
+      "category_id": "hot_meals",
+      "name": "Крылья в соусе барбекю",
+      "image_url": "pictures/items/dodo_pizza/item_krylya_v_souse_barbekyu.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_krylya_v_souse_barbekyu_std",
+          "measure": null,
+          "price": 1950,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_krylya_v_souse_teriyaki",
+      "category_id": "hot_meals",
+      "name": "Крылья в соусе терияки",
+      "image_url": "pictures/items/dodo_pizza/item_krylya_v_souse_teriyaki.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_krylya_v_souse_teriyaki_std",
+          "measure": null,
+          "price": 1950,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kofe_kapuchino",
+      "category_id": "coffee",
+      "name": "Кофе Капучино",
+      "image_url": "pictures/items/dodo_pizza/item_kofe_kapuchino.jpg",
+      "description": "Король среди кофейных напитков — классический капучино. Для любителей сбалансированного кофейно-молочного вкуса",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kofe_kapuchino_std",
+          "measure": null,
+          "price": 1050,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kofe_latte",
+      "category_id": "coffee",
+      "name": "Кофе Латте",
+      "image_url": "pictures/items/dodo_pizza/item_kofe_latte.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kofe_latte_std",
+          "measure": null,
+          "price": 1050,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kofe_amerikano",
+      "category_id": "coffee",
+      "name": "Кофе Американо",
+      "image_url": "pictures/items/dodo_pizza/item_kofe_amerikano.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kofe_amerikano_std",
+          "measure": null,
+          "price": 950,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_kakao",
+      "category_id": "cocoa",
+      "name": "Какао",
+      "image_url": "pictures/items/dodo_pizza/item_kakao.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_kakao_std",
+          "measure": null,
+          "price": 950,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_mors_vishnya",
+      "category_id": "cold_drinks",
+      "name": "Морс Вишня",
+      "image_url": "pictures/items/dodo_pizza/item_mors_vishnya.jpg",
+      "description": "Напиток со вкусом ностальгии — летние каникулы, теплые ночи и уютные дачные посиделки. А еще никаких косточек.",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_mors_vishnya_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_mors_klyukva",
+      "category_id": "cold_drinks",
+      "name": "Морс Клюква",
+      "image_url": "pictures/items/dodo_pizza/item_mors_klyukva.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_mors_klyukva_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_mors_chernaya_smorodina",
+      "category_id": "cold_drinks",
+      "name": "Морс Черная Смородина",
+      "image_url": "pictures/items/dodo_pizza/item_mors_chernaya_smorodina.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_mors_chernaya_smorodina_std",
+          "measure": null,
+          "price": 990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_goryachiy_sorbet_mango_chili",
+      "category_id": "cold_drinks",
+      "name": "Горячий сорбет манго-чили",
+      "image_url": "pictures/items/dodo_pizza/item_goryachiy_sorbet_mango_chili.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_goryachiy_sorbet_mango_chili_std",
+          "measure": null,
+          "price": 1450,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_coca_cola_zero",
+      "category_id": "cold_drinks",
+      "name": "Coca-Cola Zero",
+      "image_url": "pictures/items/dodo_pizza/item_coca_cola_zero.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_coca_cola_zero_std",
+          "measure": null,
+          "price": 700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_fanta",
+      "category_id": "cold_drinks",
+      "name": "Fanta",
+      "image_url": "pictures/items/dodo_pizza/item_fanta.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_fanta_std",
+          "measure": null,
+          "price": 700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sprite",
+      "category_id": "cold_drinks",
+      "name": "Sprite",
+      "image_url": "pictures/items/dodo_pizza/item_sprite.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sprite_std",
+          "measure": null,
+          "price": 700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_fusetea_persik",
+      "category_id": "cold_drinks",
+      "name": "Fusetea Персик",
+      "image_url": "pictures/items/dodo_pizza/item_fusetea_persik.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_fusetea_persik_std",
+          "measure": null,
+          "price": 800,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_fusetea_klubnika_dynya",
+      "category_id": "cold_drinks",
+      "name": "Fusetea Клубника-Дыня",
+      "image_url": "pictures/items/dodo_pizza/item_fusetea_klubnika_dynya.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_fusetea_klubnika_dynya_std",
+          "measure": null,
+          "price": 800,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_fusetea_mango_ananas",
+      "category_id": "cold_drinks",
+      "name": "Fusetea Манго-Ананас",
+      "image_url": "pictures/items/dodo_pizza/item_fusetea_mango_ananas.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_fusetea_mango_ananas_std",
+          "measure": null,
+          "price": 800,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_fusetea_mango_romashka",
+      "category_id": "cold_drinks",
+      "name": "Fusetea Манго-Ромашка",
+      "image_url": "pictures/items/dodo_pizza/item_fusetea_mango_romashka.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_fusetea_mango_romashka_std",
+          "measure": null,
+          "price": 800,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sok_piko_apelsin",
+      "category_id": "cold_drinks",
+      "name": "Сок Piko Апельсин",
+      "image_url": "pictures/items/dodo_pizza/item_sok_piko_apelsin.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sok_piko_apelsin_std",
+          "measure": "200 мл",
+          "price": 550,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sok_piko_persik",
+      "category_id": "cold_drinks",
+      "name": "Сок Piko Персик",
+      "image_url": "pictures/items/dodo_pizza/item_sok_piko_persik.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sok_piko_persik_std",
+          "measure": null,
+          "price": 550,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sok_piko_multifrukt",
+      "category_id": "cold_drinks",
+      "name": "Сок Piko Мультифрукт",
+      "image_url": "pictures/items/dodo_pizza/item_sok_piko_multifrukt.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sok_piko_multifrukt_std",
+          "measure": null,
+          "price": 550,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sok_piko_yabloko",
+      "category_id": "cold_drinks",
+      "name": "Сок Piko Яблоко",
+      "image_url": "pictures/items/dodo_pizza/item_sok_piko_yabloko.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sok_piko_yabloko_std",
+          "measure": null,
+          "price": 550,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_sok_piko_mors",
+      "category_id": "cold_drinks",
+      "name": "Сок Piko Морс",
+      "image_url": "pictures/items/dodo_pizza/item_sok_piko_mors.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_sok_piko_mors_std",
+          "measure": "1 л",
+          "price": 1700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_piko_pulpy_apelsin",
+      "category_id": "cold_drinks",
+      "name": "Piko Pulpy Апельсин",
+      "image_url": "pictures/items/dodo_pizza/item_piko_pulpy_apelsin.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_piko_pulpy_apelsin_std",
+          "measure": null,
+          "price": 900,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_bonaqua_gazirovannaya",
+      "category_id": "cold_drinks",
+      "name": "Bonaqua газированная",
+      "image_url": "pictures/items/dodo_pizza/item_bonaqua_gazirovannaya.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_bonaqua_gazirovannaya_std",
+          "measure": null,
+          "price": 600,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_bonaqua_negazirovannaya",
+      "category_id": "cold_drinks",
+      "name": "Bonaqua негазированная",
+      "image_url": "pictures/items/dodo_pizza/item_bonaqua_negazirovannaya.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_bonaqua_negazirovannaya_std",
+          "measure": null,
+          "price": 600,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_molochnyy_kokteyl_solenaya_karamel",
+      "category_id": "cold_drinks",
+      "name": "Молочный коктейль Соленая карамель",
+      "image_url": "pictures/items/dodo_pizza/item_molochnyy_kokteyl_solenaya_karamel.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_molochnyy_kokteyl_solenaya_karamel_std",
+          "measure": null,
+          "price": 1700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_molochnyy_kokteyl_s_pechenem_oreo",
+      "category_id": "cold_drinks",
+      "name": "Молочный коктейль с печеньем Oreo",
+      "image_url": "pictures/items/dodo_pizza/item_molochnyy_kokteyl_s_pechenem_oreo.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_molochnyy_kokteyl_s_pechenem_oreo_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_klassicheskiy_molochnyy_kokteyl",
+      "category_id": "cold_drinks",
+      "name": "Классический молочный коктейль",
+      "image_url": "pictures/items/dodo_pizza/item_klassicheskiy_molochnyy_kokteyl.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_klassicheskiy_molochnyy_kokteyl_std",
+          "measure": null,
+          "price": 1700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_shokoladnyy_molochnyy_kokteyl",
+      "category_id": "cold_drinks",
+      "name": "Шоколадный молочный коктейль",
+      "image_url": "pictures/items/dodo_pizza/item_shokoladnyy_molochnyy_kokteyl.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_shokoladnyy_molochnyy_kokteyl_std",
+          "measure": null,
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_taezhnyy_chay_10_sashetov",
+      "category_id": "tea",
+      "name": "Таежный чай, 10 сашетов",
+      "image_url": "pictures/items/dodo_pizza/item_taezhnyy_chay_10_sashetov.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_taezhnyy_chay_10_sashetov_std",
+          "measure": "10 сашетов",
+          "price": 1990,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_bliny_s_kuritsey_i_gribami",
+      "category_id": "breakfast",
+      "name": "Блины с курицей и грибами",
+      "image_url": "pictures/items/dodo_pizza/item_bliny_s_kuritsey_i_gribami.jpg",
+      "description": "Румяные блины из печи с цыпленком и грибами",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_bliny_s_kuritsey_i_gribami_std",
+          "measure": null,
+          "price": 1750,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_bliny_s_tvorogom",
+      "category_id": "breakfast",
+      "name": "Блины с творогом",
+      "image_url": "pictures/items/dodo_pizza/item_bliny_s_tvorogom.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_bliny_s_tvorogom_std",
+          "measure": null,
+          "price": 1700,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_syrniki_s_malinovym_varenem",
+      "category_id": "breakfast",
+      "name": "Сырники с малиновым вареньем",
+      "image_url": "pictures/items/dodo_pizza/item_syrniki_s_malinovym_varenem.jpg",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_syrniki_s_malinovym_varenem_std",
+          "measure": null,
+          "price": 1490,
+          "nutrition": null
+        }
+      ]
+    },
+    {
+      "id": "item_tort_shokoladno_malinovyy",
+      "category_id": "desserts",
+      "name": "Торт Шоколадно-малиновый",
+      "image_url": "pictures/items/dodo_pizza/item_tort_shokoladno_malinovyy.jpg",
+      "description": "Нежный шоколадный торт с яркой малиновой кислинкой — идеальный десерт для тех, кто любит насыщенный вкус",
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_tort_shokoladno_malinovyy_std",
+          "measure": null,
+          "price": 1590,
+          "nutrition": null
+        }
+      ]
+    }
+  ]
+}

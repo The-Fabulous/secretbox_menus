@@ -7,27 +7,27 @@
       "order": 1
     },
     {
-      "id": "cold_drinks",
-      "name": "авторские напитки",
-      "icon": "🧊",
-      "order": 2
-    },
-    {
       "id": "cocoa",
       "name": "Какао и шоколад",
       "icon": "🍫",
-      "order": 3
+      "order": 2
     },
     {
       "id": "other",
       "name": "авторские напитки",
       "icon": "🍽️",
-      "order": 4
+      "order": 3
     },
     {
       "id": "tea",
       "name": "чаи",
       "icon": "🍵",
+      "order": 4
+    },
+    {
+      "id": "cold_drinks",
+      "name": "Лимонад",
+      "icon": "🧊",
       "order": 5
     },
     {
@@ -98,7 +98,7 @@
     {
       "id": "item_batch_smorodinovyy",
       "category_id": "coffee",
-      "name": "Батч смородиновый...",
+      "name": "Батч смородиновый",
       "image_url": "images/item_batch_smorodinovyy.jpg",
       "icon": "☕",
       "description": null,
@@ -117,7 +117,7 @@
     {
       "id": "item_latte_proteinovyy",
       "category_id": "coffee",
-      "name": "Латте протеиновый...",
+      "name": "Латте протеиновый",
       "image_url": "images/item_latte_proteinovyy.jpg",
       "icon": "☕",
       "description": null,
@@ -172,6 +172,25 @@
       ]
     },
     {
+      "id": "item_latte_proteinovyy_2",
+      "category_id": "coffee",
+      "name": "Латте протеиновый...",
+      "image_url": null,
+      "icon": "☕",
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "var_latte_proteinovyy_2_std",
+          "measure": null,
+          "price": 2190,
+          "nutrition": null
+        }
+      ]
+    },
+    {
       "id": "item_hot_cherry",
       "category_id": "coffee",
       "name": "Hot Cherry",
@@ -192,7 +211,7 @@
     },
     {
       "id": "item_glintveyn",
-      "category_id": "cold_drinks",
+      "category_id": "coffee",
       "name": "Глинтвейн",
       "image_url": "images/item_glintveyn.jpg",
       "icon": "🍷",
@@ -252,7 +271,7 @@
       "category_id": "coffee",
       "name": "Айс Американо",
       "image_url": "images/item_ays_amerikano.jpg",
-      "icon": "🧊",
+      "icon": "☕",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -328,7 +347,7 @@
       "category_id": "coffee",
       "name": "Айс Капучино",
       "image_url": "images/item_ays_kapuchino.jpg",
-      "icon": "🧊",
+      "icon": "☕",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -553,7 +572,7 @@
     },
     {
       "id": "item_matcha_tonik",
-      "category_id": "cold_drinks",
+      "category_id": "tea",
       "name": "Матча-тоник",
       "image_url": "images/item_matcha_tonik.jpg",
       "icon": "🍵",
@@ -572,7 +591,7 @@
     },
     {
       "id": "item_cherri_bryu",
-      "category_id": "cold_drinks",
+      "category_id": "coffee",
       "name": "Черри брю",
       "image_url": "images/item_cherri_bryu.jpg",
       "icon": "🍒",
@@ -591,7 +610,7 @@
     },
     {
       "id": "item_bambl_kofe",
-      "category_id": "cold_drinks",
+      "category_id": "coffee",
       "name": "Бамбл кофе",
       "image_url": "images/item_bambl_kofe.jpg",
       "icon": "☕",
@@ -610,7 +629,7 @@
     },
     {
       "id": "item_espresso_tonik",
-      "category_id": "cold_drinks",
+      "category_id": "coffee",
       "name": "Эспрессо-тоник",
       "image_url": "images/item_espresso_tonik.jpg",
       "icon": "☕",
@@ -689,7 +708,7 @@
       "category_id": "tea",
       "name": "Облепиховый чай",
       "image_url": "images/item_oblepihovyy_chay.jpg",
-      "icon": "🍵",
+      "icon": "🍊",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -784,7 +803,7 @@
       "category_id": "cold_drinks",
       "name": "Лимонад Смородина-...",
       "image_url": "images/item_limonad_smorodina.jpg",
-      "icon": "🍋",
+      "icon": "🥤",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -803,7 +822,7 @@
       "category_id": "cold_drinks",
       "name": "Лимонад вишневый 450...",
       "image_url": "images/item_limonad_vishnevyy_450.jpg",
-      "icon": "🍋",
+      "icon": "🍒",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -811,7 +830,7 @@
       "variants": [
         {
           "variant_id": "var_limonad_vishnevyy_450_std",
-          "measure": "450 мл",
+          "measure": null,
           "price": 1290,
           "nutrition": null
         }
@@ -860,7 +879,7 @@
       "category_id": "other",
       "name": "Сок Rich",
       "image_url": "images/item_sok_rich.jpg",
-      "icon": "🍊",
+      "icon": "🧃",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1104,7 +1123,7 @@
     },
     {
       "id": "item_keks_shokoladnyy",
-      "category_id": "desserts",
+      "category_id": "breakfast",
       "name": "Кекс шоколадный",
       "image_url": "images/item_keks_shokoladnyy.jpg",
       "icon": "🧁",
@@ -1123,7 +1142,7 @@
     },
     {
       "id": "item_sinnabon_s_koritsey",
-      "category_id": "desserts",
+      "category_id": "breakfast",
       "name": "Синнабон с корицей",
       "image_url": "images/item_sinnabon_s_koritsey.jpg",
       "icon": "🌀",
@@ -1183,7 +1202,7 @@
       "category_id": "desserts",
       "name": "Трайфл сникерс",
       "image_url": "images/item_trayfl_snikers.jpg",
-      "icon": "🍮",
+      "icon": "🍫",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1373,7 +1392,7 @@
       "category_id": "breakfast",
       "name": "Говяжьи котлеты с...",
       "image_url": null,
-      "icon": "🍳",
+      "icon": "🥩",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1677,7 +1696,7 @@
       "category_id": "desserts",
       "name": "Чизкейк вишня-шоколад",
       "image_url": "images/item_chizkeyk_vishnya_shokolad.jpg",
-      "icon": "🍫",
+      "icon": "🍰",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1696,7 +1715,7 @@
       "category_id": "desserts",
       "name": "Чизкейк «Орео»",
       "image_url": "images/item_chizkeyk_oreo.jpg",
-      "icon": "🍪",
+      "icon": "🍰",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1715,7 +1734,7 @@
       "category_id": "desserts",
       "name": "Чизкейк «Рафаэлло»",
       "image_url": null,
-      "icon": "🥥",
+      "icon": "🍰",
       "description": null,
       "ingredients": null,
       "prep_time_min": null,
@@ -1780,7 +1799,7 @@
       "variants": [
         {
           "variant_id": "var_prestige_dlya_espresso_200_gr_std",
-          "measure": "200 гр",
+          "measure": "200 г",
           "price": 3990,
           "nutrition": null
         }
@@ -1818,7 +1837,7 @@
       "variants": [
         {
           "variant_id": "var_supremo_dlya_espresso_200_gr_std",
-          "measure": "200 гр",
+          "measure": "200 г",
           "price": 3990,
           "nutrition": null
         }

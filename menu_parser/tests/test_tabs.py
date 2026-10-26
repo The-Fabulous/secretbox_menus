@@ -71,6 +71,22 @@ class TabTests(unittest.TestCase):
         self.assertTrue((folder / 'logo.png').exists())
         self.assertFalse((self.site / 'tabs' / 'index.json').exists())
 
+    def test_optional_modules_are_copied_and_can_be_disabled(self):
+        info = driver.load_json(self.source / 'cafe.json')
+        info['modules'] = {'pickup': {'enabled': True, 'ready_minutes': 25},
+                           'delivery': {'enabled': True, 'fee': 700, 'min_order': 2000}}
+        driver.write_json(self.source / 'cafe.json', info)
+        self.run_driver()
+        self.assertEqual(driver.load_json(self.tab / 'cafe.json')['modules'], info['modules'])
+        info['modules']['delivery']['enabled'] = False
+        driver.write_json(self.source / 'cafe.json', info)
+        self.run_driver()
+        self.assertFalse(driver.load_json(self.tab / 'cafe.json')['modules']['delivery']['enabled'])
+        del info['modules']
+        driver.write_json(self.source / 'cafe.json', info)
+        self.run_driver()
+        self.assertEqual(driver.load_json(self.tab / 'cafe.json')['modules'], {})
+
     def test_manual_tab_preserved_with_complete_copy(self):
         self.run_driver()
         cafe = driver.load_json(self.tab / 'cafe.json')

@@ -940,6 +940,17 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   color: var(--text);
 }
 .text-input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.fulfillment-panel { margin-top: 16px; padding: 16px; background: var(--surface-2); border-radius: 16px; }
+.fulfillment-panel > p { line-height: 1.5; }
+.demo-note { padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-dark); font-size: 13px; line-height: 1.5; }
+.fulfillment-panel .demo-note { margin-top: 0; }
+.field-error { color: #ba3838; font-size: 13px; margin: 8px 0; line-height: 1.5; }
+.text-input[aria-invalid="true"] { box-shadow: inset 0 0 0 2px #ba3838; }
+.pay:disabled { opacity: .5; cursor: not-allowed; }
+.demo-label { display: block; color: var(--accent-dark); }
+.receipt-icon { font-size: 48px; margin-bottom: 12px; }
+.receipt > p { overflow-wrap: anywhere; }
+.receipt > .pay { width: 100%; margin-top: 20px; }
 
 .btn-ghost {
   height: 48px;

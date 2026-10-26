@@ -32,6 +32,8 @@ const context = vm.createContext({
     const folderURL = new URL('.', new URL(cafe.file, base)).href;
     if (cafe.logo) assert.ok(cafe.logo.startsWith(folderURL));
     const raw = JSON.parse(await fs.readFile(path.join(site, cafe.file), 'utf8'));
+    const info = JSON.parse(await fs.readFile(path.join(site, cafe.file.replace(/menu\.json$/, 'cafe.json')), 'utf8'));
+    assert.equal(JSON.stringify(cafe.modules), JSON.stringify(info.modules || {}));
     assert.equal(menu.items.length, raw.items.length, `Lost items: ${cafe.id}`);
     for (const item of menu.items) {
       if (item.image) assert.ok(item.image.startsWith(folderURL), `Image escaped bundle: ${item.image}`);

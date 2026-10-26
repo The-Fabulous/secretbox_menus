@@ -698,7 +698,12 @@ def cafe_info(photos_dir, cafe_id):
     """Необязательный cafe.json рядом с фото: {"name": "...", "address": "...", "city": "...", "hours": "..."}."""
     info = load_json(photos_dir / 'cafe.json', {}) or {}
     name = text_or_null(info.get('name')) or cafe_id.replace('_', ' ').title()
-    return {k: text_or_null(info.get(k)) for k in ('address', 'city', 'hours', 'logo')} | {'name': name}
+    result = {k: text_or_null(info.get(k)) for k in ('address', 'city', 'hours', 'logo')} | {'name': name}
+    # Настройки модулей переносятся из конфига, модель их не генерирует.
+    # Отсутствие блока отключает модули при следующем распознавании.
+    result['modules'] = {key: info['modules'][key] for key in ('pickup', 'delivery')
+                         if isinstance(info.get('modules'), dict) and isinstance(info['modules'].get(key), dict)}
+    return result
 
 
 def write_json(path, value):

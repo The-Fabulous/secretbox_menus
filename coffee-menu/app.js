@@ -21,7 +21,9 @@
   const state = {
     order: {},            // { 'id:variantIndex[:добавки]': qty }
     comment: '',          // комментарий к заказу
-    dineIn: 'hall',       // 'hall' | 'togo'
+    dineIn: 'hall',       // 'hall' | 'togo' | 'pickup' | 'delivery'
+    contact: { phone: '', address: '', details: '' },
+    checkoutErrors: {},
     when: 'asap',         // 'asap' | минуты
     table: null,          // номер стола из QR-кода (?table=5)
     stack: [],            // открытые окна: product | order | filters | profile
@@ -159,6 +161,18 @@
   }
   const orderCount = () => orderLines().reduce((s, l) => s + l.qty, 0);
   const orderTotal = () => orderLines().reduce((s, l) => s + l.unit * l.qty, 0);
+  const pickupSettings = () => PickupModule.config(MENU.cafe.modules?.pickup);
+  const deliverySettings = () => DeliveryModule.config(MENU.cafe.modules?.delivery);
+  const orderModes = () => ['hall', 'togo', ...(pickupSettings().enabled ? ['pickup'] : []),
+    ...(deliverySettings().enabled ? ['delivery'] : [])];
+  const isRemoteOrder = () => ['pickup', 'delivery'].includes(state.dineIn);
+  const modeLabel = (mode, table) => mode === 'hall' && table ? T('hall_table', { n: table }) : T(mode);
+  function checkoutQuote() {
+    const subtotal = orderTotal(), prep = estimateMinutes();
+    if (state.dineIn === 'pickup') return PickupModule.quote(pickupSettings(), subtotal, prep);
+    if (state.dineIn === 'delivery') return DeliveryModule.quote(deliverySettings(), subtotal, prep);
+    return { fee: 0, total: subtotal, minimum: 0, remaining: 0, minutes: prep };
+  }
 
   // ───────── фильтры
 
@@ -707,7 +721,7 @@
                 const { item } = parseKey(l.key);
                 return `${item ? L(item, 'name') : l.name}${l.qty > 1 ? ` × ${l.qty}` : ''}`;
               }).join(', ');
-              const where = h.dineIn === 'togo' ? T('togo') : h.table ? T('hall_table', { n: h.table }) : T('hall');
+              const where = modeLabel(h.dineIn || 'hall', h.table);
               return `
                 <li class="history-item">
                   <div class="history-head">
@@ -715,6 +729,8 @@
                     <small>${esc(I18N.formatDateTime(new Date(h.at)))}</small>
                   </div>
                   <p>${esc(names)}</p>
+                  ${h.demo ? `<small class="demo-label">${T('demo_saved')}</small>
+                    ${h.address ? `<p>${esc(h.address)}</p>` : ''}` : ''}
                   <div class="history-foot">
                     <small>${where} · <b>${fmt(h.total)}</b></small>
                     <button class="btn-ghost small" type="button" data-repeat="${i}">↻ ${T('repeat')}</button>
@@ -823,12 +839,57 @@
     .toLocaleTimeString(I18N.locale, { hour: '2-digit', minute: '2-digit' });
 
   function timeOptions() {
-    const est = estimateMinutes();
+    const est = checkoutQuote().minutes;
     const opts = [{ id: 'asap', title: T('asap'), sub: `${T('min', { n: est })} · ${T('at', { t: clock(est) })}` }];
     [30, 60, 90, 120].forEach(m => {
       if (m >= est + 5) opts.push({ id: String(m), title: T(`in_${m}`), sub: T('at', { t: clock(m) }) });
     });
     return opts;
+  }
+
+  function checkoutField(id, label, value, type = 'text', autocomplete = 'off', max = 160) {
+    const error = state.checkoutErrors[id];
+    return `<label class="field-label" for="${id}">${T(label)}</label>
+      <input class="text-input" id="${id}" type="${type}" maxlength="${max}" autocomplete="${autocomplete}"
+        value="${esc(value)}" ${error ? `aria-invalid="true" aria-describedby="${id}Error"` : ''}>
+      ${error ? `<p class="field-error" id="${id}Error" role="alert">${T(error)}</p>` : ''}`;
+  }
+
+  function fulfillmentView(quote) {
+    if (!isRemoteOrder()) return '';
+    const pickup = state.dineIn === 'pickup';
+    const address = pickupSettings().address || MENU.cafe.address;
+    const delivery = deliverySettings();
+    return `<section class="fulfillment-panel" aria-label="${esc(T(state.dineIn))}">
+      <p class="demo-note">${T('demo_notice')}</p>
+      ${pickup ? `<b>${T('pickup_point')}</b><p>${esc(address || T('pickup_address_pending'))}</p>
+        ${MENU.cafe.hours ? `<small>${esc(MENU.cafe.hours)}</small>` : ''}` :
+        `${checkoutField('deliveryAddress', 'delivery_address', state.contact.address, 'text', 'street-address')}
+        ${checkoutField('deliveryDetails', 'delivery_details', state.contact.details)}
+        <p class="hint">${T('delivery_terms', { fee: fmt(delivery.fee), min: fmt(delivery.minOrder) })}
+          ${delivery.freeFrom !== null ? T('delivery_free_from', { p: fmt(delivery.freeFrom) }) : ''}</p>
+        ${quote.remaining > 0 ? `<p class="field-error" role="status">${T('delivery_remaining', { p: fmt(quote.remaining) })}</p>` : ''}`}
+      ${checkoutField('orderPhone', 'contact_phone', state.contact.phone, 'tel', 'tel', 30)}
+    </section>`;
+  }
+
+  function receiptView({ order }) {
+    return `<div class="om receipt">
+      <div class="receipt-icon" aria-hidden="true">${order.dineIn === 'pickup' ? '🛍️' : '🛵'}</div>
+      <h2 class="om-title">${T('demo_order_no', { n: order.no })}</h2>
+      <p class="demo-note">${T('demo_confirmation')}</p>
+      <h3>${modeLabel(order.dineIn)}</h3>
+      <p>${esc(order.address || T('pickup_address_pending'))}</p>
+      ${order.details ? `<p>${esc(order.details)}</p>` : ''}
+      <p>${esc(order.name)} · ${esc(order.phone)}</p>
+      <p>${T(order.dineIn === 'pickup' ? 'pickup_when' : 'delivery_when')} ${esc(order.timeLabel)}</p>
+      <div class="summary">
+        <div><span>${T('items_subtotal')}</span><span>${fmt(order.subtotal)}</span></div>
+        ${order.dineIn === 'delivery' ? `<div><span>${T('delivery_fee')}</span><span>${fmt(order.deliveryFee)}</span></div>` : ''}
+        <div class="total"><span>${T('total')}</span><span>${fmt(order.total)}</span></div>
+      </div>
+      <button class="btn-primary pay" type="button" data-close>${T('back_to_menu')}</button>
+    </div>`;
   }
 
   function orderView() {
@@ -846,6 +907,8 @@
         </div>`;
     }
 
+    if (!orderModes().includes(state.dineIn)) state.dineIn = 'hall';
+    const quote = checkoutQuote();
     const opts = timeOptions();
     if (!opts.some(o => o.id === state.when)) state.when = 'asap';
     const count = orderCount();
@@ -880,43 +943,42 @@
 
         <h3 class="pm-h">${T('where')}</h3>
         <div class="segmented">
-          <button type="button" class="${state.dineIn === 'hall' ? 'active' : ''}" data-dine="hall">
-            ${state.table ? esc(T('hall_table', { n: state.table })) : T('hall')}</button>
-          <button type="button" class="${state.dineIn === 'togo' ? 'active' : ''}" data-dine="togo">${T('togo')}</button>
+          ${orderModes().map(mode => `<button type="button" class="${state.dineIn === mode ? 'active' : ''}"
+            data-dine="${mode}" aria-pressed="${state.dineIn === mode}">${esc(modeLabel(mode, state.table))}</button>`).join('')}
         </div>
+        ${fulfillmentView(quote)}
 
-        <h3 class="pm-h">${T('when')}</h3>
+        <h3 class="pm-h">${T(state.dineIn === 'pickup' ? 'pickup_when' : state.dineIn === 'delivery' ? 'delivery_when' : 'when')}</h3>
         <div class="times">
           ${opts.map(o => `
             <button type="button" class="time ${o.id === state.when ? 'active' : ''}" data-when="${o.id}">
               <b>${o.title}</b><small>${o.sub}</small>
             </button>`).join('')}
         </div>
-        <p class="hint">${T('time_hint')}</p>
+        <p class="hint">${T(isRemoteOrder() ? 'demo_time_hint' : 'time_hint')}</p>
 
-        <h3 class="pm-h">${T('for_name')}</h3>
-        <input class="text-input" id="orderName" type="text" maxlength="40" autocomplete="given-name"
-               value="${esc(guestName())}" placeholder="${esc(T('guest_name_ph'))}">
+        ${checkoutField('orderName', 'for_name', guestName(), 'text', 'given-name', 40)}
 
         <h3 class="pm-h">${T('comment')}</h3>
         <textarea class="comment" id="orderComment" rows="2" maxlength="300" placeholder="${esc(T('comment_ph'))}">${esc(state.comment)}</textarea>
 
         <div class="summary">
           <div><span>${I18N.items(count)}</span><span>${fmt(orderTotal())}</span></div>
-          <div class="total"><span>${T('total')}</span><span>${fmt(orderTotal())}</span></div>
+          ${state.dineIn === 'delivery' ? `<div><span>${T('delivery_fee')}</span><span>${fmt(quote.fee)}</span></div>` : ''}
+          <div class="total"><span>${T('total')}</span><span>${fmt(quote.total)}</span></div>
         </div>
 
         <div class="pay-wrap">
-          <button class="btn-primary pay" type="button" data-pay>${T('pay')} · ${fmt(orderTotal())}</button>
+          <button class="btn-primary pay" type="button" data-pay ${quote.remaining > 0 ? 'disabled' : ''}>${T(isRemoteOrder() ? 'demo_submit' : 'pay')} · ${fmt(quote.total)}</button>
         </div>
       </div>`;
   }
 
   // ───────── модальные окна (со стеком и кнопкой «Назад» браузера)
 
-  const VIEWS = { product: productView, order: orderView, filters: filtersView, profile: profileView, api: apiView };
+  const VIEWS = { product: productView, order: orderView, filters: filtersView, profile: profileView, api: apiView, receipt: receiptView };
   const viewLabel = top => (top.type === 'product' ? L(BY_ID[top.id], 'name')
-    : T({ order: 'your_order', filters: 'filters', profile: 'profile', api: 'api_title' }[top.type]));
+    : T({ order: 'your_order', filters: 'filters', profile: 'profile', api: 'api_title', receipt: 'demo_saved' }[top.type]));
 
   function renderModal(resetScroll) {
     const top = state.stack[state.stack.length - 1];
@@ -1027,18 +1089,46 @@
   function placeOrder() {
     const lines = orderLines();
     if (!lines.length) return;
+    if (!orderModes().includes(state.dineIn)) { state.dineIn = 'hall'; renderModal(false); return; }
+    const quote = checkoutQuote();
+    if (quote.remaining > 0) { renderModal(false); return; }
+    state.checkoutErrors = {};
+    if (isRemoteOrder()) {
+      if (!guestName().trim()) state.checkoutErrors.orderName = 'name_required';
+      if (!/^[+\d\s().-]+$/.test(state.contact.phone) || !/^\d{10,15}$/.test(state.contact.phone.replace(/\D/g, '')))
+        state.checkoutErrors.orderPhone = 'phone_invalid';
+      if (state.dineIn === 'delivery' && !DeliveryModule.validAddress(state.contact.address))
+        state.checkoutErrors.deliveryAddress = 'address_required';
+      if (Object.keys(state.checkoutErrors).length) {
+        renderModal(false);
+        document.getElementById(Object.keys(state.checkoutErrors)[0]).focus();
+        return;
+      }
+    }
+    const opts = timeOptions();
+    const selectedTime = opts.find(o => o.id === state.when) || opts[0];
+    state.when = selectedTime.id;
     const no = (state.history[0] ? state.history[0].no : 0) + 1;
-    state.history.unshift({
+    const order = {
       no,
       at: Date.now(),
       lines: lines.map(l => ({ key: l.key, qty: l.qty, name: l.item.name, unit: l.unit })),
-      total: orderTotal(),
+      total: quote.total,
+      subtotal: orderTotal(),
+      deliveryFee: quote.fee,
+      demo: isRemoteOrder(),
+      phone: isRemoteOrder() ? state.contact.phone.trim() : null,
+      address: state.dineIn === 'delivery' ? state.contact.address.trim() : state.dineIn === 'pickup'
+        ? pickupSettings().address || MENU.cafe.address : null,
+      details: state.dineIn === 'delivery' ? state.contact.details.trim() : null,
+      timeLabel: selectedTime.sub,
       dineIn: state.dineIn,
       table: state.dineIn === 'hall' ? state.table : null,
       when: state.when,
       name: guestName() || null,
       comment: state.comment || null,
-    });
+    };
+    state.history.unshift(order);
     state.history = state.history.slice(0, 30);
     writeStore(storeKey('history'), state.history);
 
@@ -1048,8 +1138,13 @@
     saveComment();
     updateSlots();
     renderCartBar();
-    closeAll();
-    toast(T('order_placed', { n: no }));
+    if (order.demo) {
+      state.stack[state.stack.length - 1] = { type: 'receipt', order };
+      renderModal(true);
+    } else {
+      closeAll();
+      toast(T('order_placed', { n: no }));
+    }
   }
 
   function repeatOrder(index) {
@@ -1193,12 +1288,20 @@
       renderCartBar();
       renderModal(false);
     }
-    else if (d.dine) { state.dineIn = d.dine; renderModal(false); }
+    else if (d.dine && orderModes().includes(d.dine)) {
+      state.dineIn = d.dine; state.checkoutErrors = {}; renderModal(false);
+    }
     else if (d.when) { state.when = d.when; renderModal(false); }
   });
 
   document.addEventListener('input', e => {
     const id = e.target.id;
+    if (state.checkoutErrors[id]) {
+      delete state.checkoutErrors[id];
+      e.target.removeAttribute('aria-invalid');
+      e.target.removeAttribute('aria-describedby');
+      document.getElementById(`${id}Error`)?.remove();
+    }
     if (id === 'searchInput') {
       state.search.q = e.target.value;
       renderMenu();
@@ -1207,6 +1310,8 @@
       saveComment();
     } else if (id === 'guestName' || id === 'orderName') {
       writeStore('guest:name', e.target.value.trim());
+    } else if (['orderPhone', 'deliveryAddress', 'deliveryDetails'].includes(id)) {
+      state.contact[{ orderPhone: 'phone', deliveryAddress: 'address', deliveryDetails: 'details' }[id]] = e.target.value;
     } else if (id === 'filterPrice') {
       const b = priceBounds();
       const v = Number(e.target.value);

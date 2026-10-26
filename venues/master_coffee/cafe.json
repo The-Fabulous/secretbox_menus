@@ -3,5 +3,9 @@
   "address": null,
   "city": null,
   "hours": null,
-  "logo": "logo.png"
+  "logo": "logo.png",
+  "modules": {
+    "pickup": { "enabled": true, "ready_minutes": 20 },
+    "delivery": { "enabled": true, "fee": 700, "min_order": 2000, "free_from": 10000, "travel_minutes": 30 }
+  }
 }

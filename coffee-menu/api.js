@@ -109,6 +109,7 @@ const API = (() => {
         city: str(c.city),
         hours: str(c.hours),
         currency: str(c.currency) || 'KZT',
+        modules: c.modules && typeof c.modules === 'object' ? c.modules : {},
         // фирменный цвет кофейни: кнопки, акценты, выбранные варианты
         accent: c.theme && /^#[0-9a-f]{6}$/i.test(c.theme.accent) ? c.theme.accent : null,
       }));

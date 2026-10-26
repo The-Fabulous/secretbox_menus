@@ -289,7 +289,7 @@
             </span>
           </a>` : ''}
         ${cafe && state.table ? `<span class="table-pill">🪑 ${esc(T('table', { n: state.table }))}</span>` : ''}
-        ${cafe && state.staff ? `
+        ${state.staff ? `
           <button class="api-chip" type="button" data-api-open title="${esc(T('api_title'))}">
             <span class="api-dot ${state.api.status}"></span>${T('api_chip')}
           </button>` : ''}
@@ -307,6 +307,8 @@
         </button>
       </div>`;
   }
+
+  const refreshHeader = () => (MENU ? renderHeader(MENU.cafe, canSwitchCafe) : renderHeader(null, false));
 
   // фирменный цвет кофейни; от него в styles.css считаются тёмный и светлый оттенки
   function applyTheme(cafe) {
@@ -750,7 +752,7 @@
   // Спрашиваем посредника; он сам обращается к Gemma с ключом и отвечает только «работает / нет»
   async function checkApi() {
     state.api = { ...state.api, status: 'checking' };
-    renderHeader(MENU.cafe, canSwitchCafe);
+    refreshHeader();
     renderModal(false);
 
     const ctrl = new AbortController();
@@ -780,7 +782,7 @@
     }
 
     state.api = { status: ok ? 'ok' : 'fail', message, model, at: Date.now() };
-    renderHeader(MENU.cafe, canSwitchCafe);
+    refreshHeader();
     if (topModal() && topModal().type === 'api') renderModal(false);
     else toast(message);
   }
@@ -1084,15 +1086,24 @@
       return;
     }
 
-    if (!MENU) return;
+    // окно и проверка API работают и на экране выбора кофейни, где меню не загружено
     if (e.target === overlay) { closeAll(); return; }
+    const m = e.target.closest('[data-close],[data-back],[data-api-open],[data-api-run]');
+    if (m) {
+      if (m.dataset.apiOpen !== undefined) pushModal({ type: 'api' });
+      else if (m.dataset.apiRun !== undefined) checkApi();
+      else if (m.dataset.back !== undefined) history.back();
+      else closeAll();
+      return;
+    }
+
+    if (!MENU) return;
 
     const t = e.target.closest([
       '[data-fav]', '[data-add]', '[data-inc]', '[data-dec]', '[data-open]', '[data-open-key]', '[data-cat]',
-      '[data-size]', '[data-mod]', '[data-close]', '[data-back]', '[data-order]', '[data-clear]', '[data-dine]',
+      '[data-size]', '[data-mod]', '[data-order]', '[data-clear]', '[data-dine]',
       '[data-when]', '[data-search-open]', '[data-search-close]', '[data-filters-open]', '[data-filter-tag]',
       '[data-filters-apply]', '[data-filters-clear]', '[data-filters-reset]', '[data-profile]', '[data-pay]', '[data-repeat]',
-      '[data-api-open]', '[data-api-run]',
     ].join(','));
     if (!t) return;
     const d = t.dataset;
@@ -1148,13 +1159,9 @@
       scrollToMenuTop();
       updateSpy();
     }
-    else if (d.apiOpen !== undefined) pushModal({ type: 'api' });
-    else if (d.apiRun !== undefined) checkApi();
     else if (d.profile !== undefined) pushModal({ type: 'profile' });
     else if (d.pay !== undefined) placeOrder();
     else if (d.repeat !== undefined) repeatOrder(Number(d.repeat));
-    else if (d.close !== undefined) closeAll();
-    else if (d.back !== undefined) history.back();
     else if (d.order !== undefined) pushModal({ type: 'order' });
     else if (d.clear !== undefined) {
       state.order = {};
@@ -1303,13 +1310,6 @@
     const hist = readStore(storeKey('history'), []);
     state.history = Array.isArray(hist) ? hist.filter(h => h && Array.isArray(h.lines) && Number.isFinite(h.no)) : [];
 
-    // режим персонала: ?staff=1 включает кнопку «Проверить API» в этом браузере, ?staff=0 выключает
-    const staffParam = new URLSearchParams(location.search).get('staff');
-    if (staffParam === '1' || staffParam === '0') writeStore('staff', staffParam === '1');
-    state.staff = readStore('staff', false) === true;
-    // прошлая версия кнопки хранила ключ в браузере — стираем, если он там остался
-    try { localStorage.removeItem('staff:gemma_key'); } catch { /* приватный режим */ }
-
     // номер стола из QR-кода: ?table=5 — сразу «в зале»
     const table = (new URLSearchParams(location.search).get('table') || '').trim();
     if (/^[\w-]{1,10}$/.test(table)) {
@@ -1323,6 +1323,14 @@
   async function init() {
     // если страницу обновили с открытым окном — сбрасываем состояние истории
     if (history.state && history.state.depth) history.replaceState(null, '');
+
+    // режим персонала (на любой странице): ?staff=1 включает кнопку «Проверить API» в этом браузере, ?staff=0 выключает
+    const staffParam = new URLSearchParams(location.search).get('staff');
+    if (staffParam === '1' || staffParam === '0') writeStore('staff', staffParam === '1');
+    state.staff = readStore('staff', false) === true;
+    // прошлая версия кнопки хранила ключ в браузере — стираем, если он там остался
+    try { localStorage.removeItem('staff:gemma_key'); } catch { /* приватный режим */ }
+
     const loading = $('#menu .loading');
     if (loading) loading.textContent = T('loading');
 

@@ -1,0 +1,51 @@
+{
+  "categories": [
+    {
+      "id": "",
+      "name": "",
+      "icon": null,
+      "order": 1
+    }
+  ],
+  "modifier_groups": [
+    {
+      "id": "",
+      "name": "",
+      "type": "single",
+      "applies_to": [],
+      "options": [
+        {
+          "id": "",
+          "name": "",
+          "price": 0,
+          "default": true
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "",
+      "category_id": "",
+      "name": "",
+      "image_url": null,
+      "description": null,
+      "ingredients": null,
+      "prep_time_min": null,
+      "is_special": false,
+      "variants": [
+        {
+          "variant_id": "",
+          "measure": null,
+          "price": 0,
+          "nutrition": {
+            "calories": null,
+            "proteins": null,
+            "fats": null,
+            "carbs": null
+          }
+        }
+      ]
+    }
+  ]
+}

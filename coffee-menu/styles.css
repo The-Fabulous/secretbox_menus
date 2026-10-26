@@ -88,6 +88,41 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 }
 
 .top-left { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+
+/* кнопка «Проверить API» — только для персонала (?staff=1) */
+.api-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 800;
+  font-size: 12px;
+}
+.api-chip:hover { box-shadow: inset 0 0 0 1px var(--accent); }
+.api-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #b9ada2; }
+.api-dot.ok { background: #2f9e44; box-shadow: 0 0 0 3px color-mix(in srgb, #2f9e44 25%, transparent); }
+.api-dot.fail { background: var(--hot); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hot) 25%, transparent); }
+.api-dot.checking { background: #f0a020; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.api-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+.api-status .api-dot { margin-top: 5px; width: 12px; height: 12px; }
+.api-status div { display: flex; flex-direction: column; gap: 2px; }
+.api-status b { font-size: 15px; }
+.api-status small { font-size: 12.5px; color: var(--muted); }
+.api-status.ok b { color: #2b8a3e; }
+.api-status.fail b { color: var(--hot); }
+.btn-primary:disabled { opacity: .6; cursor: progress; }
 .table-pill {
   padding: 4px 10px;
   border-radius: 999px;

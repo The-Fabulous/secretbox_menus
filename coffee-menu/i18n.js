@@ -69,6 +69,18 @@ const I18N = (() => {
       history: 'История заказов', history_empty: 'Здесь появятся ваши заказы',
       repeat: 'Повторить', order_no: 'Заказ № {n}', order_placed: 'Заказ № {n} оформлен',
       repeat_added: 'Добавлено в заказ: {n}', repeat_missing: 'Некоторых позиций больше нет в меню',
+      // проверка Gemma — только для персонала (?staff=1), поэтому только по-русски
+      api_title: 'Проверка API Gemma', api_chip: 'API',
+      api_hint: 'Сайт спрашивает сервер проверки Secretbox, а тот — Gemma. Ключ хранится только у сервера проверки и сюда не передаётся. Результат обновляется не чаще раза в минуту.',
+      api_not_configured: 'Сервер проверки не настроен: разверните gemma-health (инструкция в gemma-health/README.md) и впишите его адрес в data/config.json.',
+      api_check: 'Проверить', api_checking: 'Проверяем…',
+      api_ok: '✓ Gemma исправна — ответ за {s} с',
+      api_proxy_no_key: '✗ У сервера проверки не задан ключ Gemma (секрет GEMMA_API_KEY)',
+      api_proxy_error: '✗ Сервер проверки ответил ошибкой {code}', api_proxy_offline: '✗ Сервер проверки недоступен',
+      api_bad_key: '✗ Неверный ключ (сервер ответил {code})', api_no_model: '✗ Модель «{m}» не найдена на сервере',
+      api_limit: '✗ Превышен лимит запросов, попробуйте позже', api_server: '✗ Сервер Gemma неисправен (код {code})',
+      api_offline: '✗ Нет связи с сервером Gemma', api_timeout: '✗ Сервер не ответил за {s} с',
+      api_never: 'Ещё не проверяли', api_last: 'Последняя проверка: {t}',
     },
     kz: {
       today: 'Бүгінгі мәзір',

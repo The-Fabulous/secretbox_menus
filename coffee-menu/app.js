@@ -3,6 +3,12 @@
 
   const { t: T, L } = I18N;
 
+  // Кнопка «Проверить API» (видна только персоналу: ?staff=1) спрашивает не Gemma напрямую,
+  // а сервер-посредник (gemma-health/worker.js, адрес — в data/config.json). Ключ Gemma хранится
+  // только у посредника — в браузер, на сайт и в репозиторий он не попадает.
+  let CONFIG = { gemmaHealthUrl: null };
+  const API_TIMEOUT_SEC = 25;
+
   // Заполняется после загрузки данных (см. init)
   let STYLES = {};        // общие стили разделов (data/categories.json)
   let TAGS = {};          // метки позиций (data/tags.json): id → метка
@@ -26,6 +32,8 @@
     history: [],          // прошлые заказы этой кофейни
     picker: null,         // { cafes, menus } — экран выбора кофейни
     error: null,
+    staff: false,         // режим персонала: кнопка «Проверить API»
+    api: { status: 'unknown', message: '', at: null },  // unknown | checking | ok | fail
   };
 
   const $ = sel => document.querySelector(sel);
@@ -281,6 +289,10 @@
             </span>
           </a>` : ''}
         ${cafe && state.table ? `<span class="table-pill">🪑 ${esc(T('table', { n: state.table }))}</span>` : ''}
+        ${cafe && state.staff ? `
+          <button class="api-chip" type="button" data-api-open title="${esc(T('api_title'))}">
+            <span class="api-dot ${state.api.status}"></span>${T('api_chip')}
+          </button>` : ''}
       </div>
 
       <a class="logo" href="${canSwitch ? './' : '#'}" ${canSwitch ? `title="${esc(T('switch_cafe'))}"` : ''}>
@@ -710,6 +722,69 @@
       </div>`;
   }
 
+  // ───────── проверка API Gemma (персонал)
+
+  function apiView() {
+    const a = state.api;
+    const configured = Boolean(CONFIG.gemmaHealthUrl);
+    return `
+      <div class="om">
+        <h2 class="om-title">${T('api_title')}</h2>
+        <p class="hint">${T(configured ? 'api_hint' : 'api_not_configured')}</p>
+
+        ${configured ? `
+          <div class="api-status ${a.status}">
+            <span class="api-dot ${a.status}"></span>
+            <div>
+              <b>${esc(a.status === 'checking' ? T('api_checking') : a.message || T('api_never'))}</b>
+              ${a.at ? `<small>${esc(T('api_last', { t: I18N.formatDateTime(new Date(a.at)) }))}${a.model ? ` · ${esc(a.model)}` : ''}</small>` : ''}
+            </div>
+          </div>
+
+          <div class="pay-wrap">
+            <button class="btn-primary" type="button" data-api-run ${a.status === 'checking' ? 'disabled' : ''}>${T('api_check')}</button>
+          </div>` : ''}
+      </div>`;
+  }
+
+  // Спрашиваем посредника; он сам обращается к Gemma с ключом и отвечает только «работает / нет»
+  async function checkApi() {
+    state.api = { ...state.api, status: 'checking' };
+    renderHeader(MENU.cafe, canSwitchCafe);
+    renderModal(false);
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), API_TIMEOUT_SEC * 1000);
+    let ok = false;
+    let message;
+    let model = null;
+    try {
+      const res = await fetch(CONFIG.gemmaHealthUrl, { signal: ctrl.signal, cache: 'no-store' });
+      if (!res.ok) throw Object.assign(new Error('health'), { proxy: res.status });
+      const h = await res.json();
+      model = typeof h.model === 'string' ? h.model : null;
+      const seconds = (Number(h.ms) / 1000 || 0).toFixed(1).replace('.', ',');
+      if (h.ok) { ok = true; message = T('api_ok', { s: seconds }); }
+      else if (h.error === 'no_key') message = T('api_proxy_no_key');
+      else if (h.error === 'timeout') message = T('api_timeout', { s: 20 });
+      else if (h.error === 'network') message = T('api_offline');
+      else if (h.status === 401 || h.status === 403) message = T('api_bad_key', { code: h.status });
+      else if (h.status === 404) message = T('api_no_model', { m: model || 'gemma' });
+      else if (h.status === 429) message = T('api_limit');
+      else message = T('api_server', { code: h.status });
+    } catch (e) {
+      message = e.name === 'AbortError' ? T('api_timeout', { s: API_TIMEOUT_SEC })
+        : e.proxy ? T('api_proxy_error', { code: e.proxy }) : T('api_proxy_offline');
+    } finally {
+      clearTimeout(timer);
+    }
+
+    state.api = { status: ok ? 'ok' : 'fail', message, model, at: Date.now() };
+    renderHeader(MENU.cafe, canSwitchCafe);
+    if (topModal() && topModal().type === 'api') renderModal(false);
+    else toast(message);
+  }
+
   // ───────── окно заказа
 
   function estimateMinutes() {
@@ -816,9 +891,9 @@
 
   // ───────── модальные окна (со стеком и кнопкой «Назад» браузера)
 
-  const VIEWS = { product: productView, order: orderView, filters: filtersView, profile: profileView };
+  const VIEWS = { product: productView, order: orderView, filters: filtersView, profile: profileView, api: apiView };
   const viewLabel = top => (top.type === 'product' ? L(BY_ID[top.id], 'name')
-    : T({ order: 'your_order', filters: 'filters', profile: 'profile' }[top.type]));
+    : T({ order: 'your_order', filters: 'filters', profile: 'profile', api: 'api_title' }[top.type]));
 
   function renderModal(resetScroll) {
     const top = state.stack[state.stack.length - 1];
@@ -1017,6 +1092,7 @@
       '[data-size]', '[data-mod]', '[data-close]', '[data-back]', '[data-order]', '[data-clear]', '[data-dine]',
       '[data-when]', '[data-search-open]', '[data-search-close]', '[data-filters-open]', '[data-filter-tag]',
       '[data-filters-apply]', '[data-filters-clear]', '[data-filters-reset]', '[data-profile]', '[data-pay]', '[data-repeat]',
+      '[data-api-open]', '[data-api-run]',
     ].join(','));
     if (!t) return;
     const d = t.dataset;
@@ -1072,6 +1148,8 @@
       scrollToMenuTop();
       updateSpy();
     }
+    else if (d.apiOpen !== undefined) pushModal({ type: 'api' });
+    else if (d.apiRun !== undefined) checkApi();
     else if (d.profile !== undefined) pushModal({ type: 'profile' });
     else if (d.pay !== undefined) placeOrder();
     else if (d.repeat !== undefined) repeatOrder(Number(d.repeat));
@@ -1126,8 +1204,7 @@
       e.target.click();
     }
     // Enter в поиске — убрать клавиатуру на телефоне, чтобы были видны результаты
-    if (e.key === 'Enter' && e.target.id === 'searchInput') e.target.blur();
-  });
+    if (e.key === 'Enter' && e.target.id === 'searchInput') e.target.blur();  });
 
   // тень у ленты разделов, когда она прилипла к верху
   new IntersectionObserver(([en]) => tabsWrap.classList.toggle('stuck', en.intersectionRatio < 1),
@@ -1226,6 +1303,13 @@
     const hist = readStore(storeKey('history'), []);
     state.history = Array.isArray(hist) ? hist.filter(h => h && Array.isArray(h.lines) && Number.isFinite(h.no)) : [];
 
+    // режим персонала: ?staff=1 включает кнопку «Проверить API» в этом браузере, ?staff=0 выключает
+    const staffParam = new URLSearchParams(location.search).get('staff');
+    if (staffParam === '1' || staffParam === '0') writeStore('staff', staffParam === '1');
+    state.staff = readStore('staff', false) === true;
+    // прошлая версия кнопки хранила ключ в браузере — стираем, если он там остался
+    try { localStorage.removeItem('staff:gemma_key'); } catch { /* приватный режим */ }
+
     // номер стола из QR-кода: ?table=5 — сразу «в зале»
     const table = (new URLSearchParams(location.search).get('table') || '').trim();
     if (/^[\w-]{1,10}$/.test(table)) {
@@ -1243,7 +1327,10 @@
     if (loading) loading.textContent = T('loading');
 
     try {
-      const [styles, { brand, cafes }, tags] = await Promise.all([API.getStyles(), API.getCafes(), API.getTags()]);
+      const [styles, { brand, cafes }, tags, config] = await Promise.all([
+        API.getStyles(), API.getCafes(), API.getTags(), API.getConfig(),
+      ]);
+      CONFIG = config;
       STYLES = styles;
       BRAND = brand;
       TAGS = Object.fromEntries(tags.map(t => [t.id, t]));

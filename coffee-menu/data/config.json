@@ -1,0 +1,4 @@
+{
+  "_comment": "gemma_health_url — адрес проверки Gemma (Cloudflare Worker из папки gemma-health), например https://gemma-health.<аккаунт>.workers.dev/health. Ключа здесь нет и быть не должно.",
+  "gemma_health_url": null
+}

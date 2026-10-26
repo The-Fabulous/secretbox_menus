@@ -266,5 +266,17 @@ const API = (() => {
     return { cafe, currency: cafe.currency, categories: cats, items };
   }
 
-  return { getStyles, getCafes, getTags, getMenu, DataError };
+  // ───────── настройки сайта (data/config.json). Нет файла — значения по умолчанию
+
+  async function getConfig() {
+    try {
+      const raw = (await getJSON('data/config.json')) || {};
+      const url = str(raw.gemma_health_url);
+      return { gemmaHealthUrl: url && /^https:\/\//.test(url) ? url : null };
+    } catch {
+      return { gemmaHealthUrl: null };
+    }
+  }
+
+  return { getStyles, getCafes, getTags, getMenu, getConfig, DataError };
 })();

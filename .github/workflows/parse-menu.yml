@@ -1,0 +1,123 @@
+name: Меню из фото
+
+# Фото меню загружаются в menu_parser/photos/<id кофейни>/ — задача распознаёт их через Gemma,
+# записывает coffee-menu/cafes/<id>.json, добавляет кофейню на сайт и публикует его.
+# Ключ Gemma — секрет репозитория OPENAI_API_KEY (Settings → Secrets and variables → Actions).
+
+on:
+  push:
+    branches: [main]
+    paths: ['menu_parser/photos/**']
+  workflow_dispatch:
+    inputs:
+      cafe_id:
+        description: 'id кофейни — имя папки в menu_parser/photos'
+        required: true
+
+permissions:
+  contents: write   # закоммитить готовое меню
+  pages: write      # опубликовать сайт
+  id-token: write
+
+concurrency:
+  group: parse-menu
+  cancel-in-progress: false
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Установить зависимости
+        run: pip install -r menu_parser/requirements.txt
+
+      - name: Какие кофейни распознать
+        id: cafes
+        env:
+          INPUT_CAFE: ${{ github.event.inputs.cafe_id }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$INPUT_CAFE" ]; then
+            list="$INPUT_CAFE"
+          else
+            base="$BEFORE"
+            git cat-file -e "$base" 2>/dev/null || base="HEAD~1"
+            # только папки (menu_parser/photos/<кофейня>/<файл>), в которых что-то изменилось
+            list=$(git diff --name-only "$base" HEAD -- menu_parser/photos | awk -F/ 'NF>=4 {print $3}' | sort -u | tr '\n' ' ')
+          fi
+          echo "Кофейни: ${list:-нет}"
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+      - name: Распознать фото через Gemma
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LIST: ${{ steps.cafes.outputs.list }}
+        run: |
+          status=0
+          for cafe in $LIST; do
+            [ -d "menu_parser/photos/$cafe" ] || continue   # папку удалили — нечего распознавать
+            echo "::group::$cafe"
+            python menu_parser/driver.py "menu_parser/photos/$cafe" --cafe-id "$cafe" --publish || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      # сохраняем всё, что распознано, даже если одна из кофеен не получилась
+      - name: Сохранить меню в репозиторий
+        id: commit
+        if: ${{ !cancelled() }}
+        env:
+          LIST: ${{ steps.cafes.outputs.list }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coffee-menu/cafes coffee-menu/data/cafes.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "Меню из фото: $LIST"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # результат для кофеен, сделанных вручную (их меню не перезаписывается), — скачать со страницы задачи
+      - name: Результат распознавания
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: menu-json
+          path: menu_parser/output/*.json
+          if-no-files-found: ignore
+
+  # коммит из задачи не запускает другие задачи, поэтому сайт публикуем здесь
+  deploy:
+    needs: parse
+    if: ${{ !cancelled() && needs.parse.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: coffee-menu
+      - name: Опубликовать сайт
+        id: deployment
+        uses: actions/deploy-pages@v4

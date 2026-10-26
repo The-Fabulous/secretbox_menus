@@ -1,13 +1,26 @@
 {
   "id": "dodo_pizza",
+  "currency": "KZT",
+  "theme": {
+    "accent": null
+  },
   "name": "Dodo Pizza",
   "logo": null,
   "address": null,
   "city": null,
   "hours": null,
-  "currency": "KZT",
-  "theme": {
-    "accent": null
-  },
-  "source": "photos"
+  "source": "photos",
+  "modules": {
+    "pickup": {
+      "enabled": false,
+      "ready_minutes": 0
+    },
+    "delivery": {
+      "enabled": true,
+      "fee": 700,
+      "min_order": 2000,
+      "free_from": 10000,
+      "travel_minutes": 30
+    }
+  }
 }

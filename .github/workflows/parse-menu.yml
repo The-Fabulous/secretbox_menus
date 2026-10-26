@@ -81,6 +81,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add coffee-menu/cafes coffee-menu/data/cafes.json
+          [ -d coffee-menu/pictures/items ] && git add coffee-menu/pictures/items   # вырезанные фото позиций
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0

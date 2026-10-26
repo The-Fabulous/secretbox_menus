@@ -5,19 +5,6 @@
   },
   "cafes": [
     {
-      "id": "master_coffe",
-      "name": "Master Coffee",
-      "file": "cafes/master_coffe.json",
-      "logo": "pictures/logos/logo_master.png",
-      "address": null,
-      "city": null,
-      "hours": null,
-      "currency": "KZT",
-      "theme": {
-        "accent": "#0b6f7a"
-      }
-    },
-    {
       "id": "ayu_menu",
       "name": "AYU coffee",
       "file": "cafes/ayu_menu.json",
@@ -68,20 +55,6 @@
       "theme": {
         "accent": null
       }
-    },
-    {
-      "id": "zebra_coffee",
-      "name": "Zebra Coffee",
-      "file": "cafes/zebra_coffee.json",
-      "logo": null,
-      "address": null,
-      "city": null,
-      "hours": null,
-      "currency": "KZT",
-      "theme": {
-        "accent": null
-      },
-      "source": "photos"
     },
     {
       "id": "dodo_pizza",

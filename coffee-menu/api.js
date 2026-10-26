@@ -229,6 +229,8 @@ const API = (() => {
       name: String(raw.name),
       desc: str(raw.description),
       image: str(raw.image_url),
+      // эмодзи позиции (показывается, если нет фото); без букв и цифр, иначе — значок раздела
+      icon: str(raw.icon) && raw.icon.length <= 8 && !/[\p{L}\p{N}\s]/u.test(raw.icon) ? raw.icon : null,
       ing: Array.isArray(raw.ingredients) ? raw.ingredients.filter(present).map(String) : [],
       prep,                                    // null — не показываем
       prepEstimate: prep ?? cat.prep,          // для расчёта времени заказа

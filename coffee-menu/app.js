@@ -182,7 +182,7 @@
     const [c1, c2] = cat.colors;
     return `
       <div class="pic ${cls}" style="--c1:${esc(c1)};--c2:${esc(c2)}">
-        <span>${esc(cat.emoji)}</span>
+        <span>${esc(item.icon || cat.emoji)}</span>
         ${item.image ? `<img src="${esc(item.image)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
       </div>`;
   }

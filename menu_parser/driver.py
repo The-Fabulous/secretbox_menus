@@ -49,21 +49,41 @@ def load_json(path, fallback=None):
         return fallback
 
 
-# ───────── фото → data URL (большие фото уменьшаются, всё приводится к JPEG)
+# ───────── фото → фрагменты для модели
+#
+# Длинный скриншот меню (например, 1268×21000) нельзя просто уменьшить: текст станет нечитаемым.
+# Поэтому ширина ограничивается max_width, а по высоте картинка режется на фрагменты с перекрытием,
+# чтобы карточка, разрезанная краем одного фрагмента, целиком попала в соседний.
 
-def image_to_data_url(path, max_side):
-    data = path.read_bytes()
-    mime = mimetypes.guess_type(path.name)[0] or 'image/jpeg'
+TILE_HEIGHT = 2000
+TILE_OVERLAP = 700
+
+
+def to_data_url(im):
+    buf = io.BytesIO()
+    im.convert('RGB').save(buf, 'JPEG', quality=90)
+    return f'data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}'
+
+
+def image_tiles(path, max_width):
+    """Список data URL: одно фото — один или несколько фрагментов сверху вниз."""
     try:
         from PIL import Image, ImageOps
-        im = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))  # фото с телефона бывают повёрнуты
-        im.thumbnail((max_side, max_side))
-        buf = io.BytesIO()
-        im.convert('RGB').save(buf, 'JPEG', quality=88)
-        data, mime = buf.getvalue(), 'image/jpeg'
-    except ImportError:
-        pass  # без Pillow отправляем как есть
-    return f'data:{mime};base64,{base64.b64encode(data).decode()}'
+    except ImportError:  # без Pillow отправляем как есть
+        mime = mimetypes.guess_type(path.name)[0] or 'image/jpeg'
+        return [f'data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}']
+
+    im = ImageOps.exif_transpose(Image.open(path))  # фото с телефона бывают повёрнуты
+    if im.width > max_width:
+        im = im.resize((max_width, round(im.height * max_width / im.width)), Image.LANCZOS)
+    w, h = im.size
+    tile_h = max(TILE_HEIGHT, round(w * 1.2))
+    if h <= tile_h * 1.15:
+        return [to_data_url(im)]
+
+    step = tile_h - TILE_OVERLAP
+    tops = list(range(0, h - tile_h, step)) + [h - tile_h]  # последний фрагмент — ровно до низа
+    return [to_data_url(im.crop((0, top, w, top + tile_h))) for top in tops]
 
 
 # ───────── запрос к модели
@@ -78,6 +98,8 @@ def build_prompt(etalon, categories, example):
 3. category_id — только один из этих разделов:
 {cats}
    Если ничего не подходит — other. В categories[].name пиши название раздела так, как оно написано на фото.
+   Напитки (в том числе глинтвейн, какао, урбеч, молочные коктейли) — только в разделы напитков
+   (coffee, tea, cocoa, cold_drinks), никогда не в блюда.
 4. price — число без пробелов и знака валюты: «1 290 ₸» → 1290.
 5. Один напиток в нескольких размерах (S/M/L, 250/350 мл) — одна позиция с несколькими variants,
    в measure пиши объём или вес как на фото («350 мл», «150 г»), если не указан — null.
@@ -87,6 +109,11 @@ def build_prompt(etalon, categories, example):
    Если добавок на фото нет — "modifier_groups": [].
 8. Названия пиши как на фото, исправляя только явные ошибки распознавания.
 9. Если на фото нет меню — верни {{"categories": [], "modifier_groups": [], "items": []}}.
+10. Фото может быть фрагментом длинного меню. Карточку, обрезанную верхним или нижним краем
+    (не видно названия или цены целиком), пропусти — она целиком есть на соседнем фрагменте.
+11. Цену читай очень внимательно, цифра за цифрой: 990, 1090 и 1290 — разные цены.
+12. Блоки «Популярное», «Хиты», «Рекомендуем», «Новинки» — не разделы: позиции из них всё равно
+    переписывай, category_id выбирай по смыслу позиции, а сам блок в categories не добавляй.
 
 Шаблон (пустой):
 {json.dumps(etalon, ensure_ascii=False, indent=2)}
@@ -153,8 +180,10 @@ def text_or_null(v):
 
 def tidy_name(v):
     """«КОФЕ» → «Кофе»: в меню заголовки часто набраны капсом, на сайте это выглядит крикливо.
-    Короткие слова (KFC, РАФ) не трогаем."""
+    Короткие слова (KFC, РАФ) не трогаем. Висящий дефис («Чай клубника-малина-» — название
+    обрезано в самом меню) убираем."""
     s = text_or_null(v)
+    s = s.rstrip(' -–—') or s if s else s
     return s[0] + s[1:].lower() if s and s.isupper() and len(s) > 3 else s
 
 
@@ -193,6 +222,9 @@ def nutrition(v):
     return n if any(x not in (None, 0) for x in n.values()) else None
 
 
+POPULAR_RE = re.compile(r'популяр|хит|рекоменд|бестселл|новинк|popular|best|hits?\b', re.I)
+
+
 class MenuBuilder:
     """Копит разделы, добавки и позиции со всех фото и следит, чтобы id не повторялись."""
 
@@ -203,7 +235,8 @@ class MenuBuilder:
         self.groups = {}           # id → группа добавок
         self.items = []
         self.item_ids = set()
-        self.seen = set()          # (раздел, название) — одна позиция на разных фото
+        self.named = set()         # разделы, у которых уже есть настоящее название с фото
+        self.seen = set()          # названия: одна позиция на разных фото/фрагментах и в «Популярном»
         self.warnings = []
 
     def category_id(self, raw):
@@ -212,14 +245,21 @@ class MenuBuilder:
 
     def add_category(self, raw_id, name=None):
         cid = self.category_id(raw_id)
+        name = tidy_name(name)
+        if name and POPULAR_RE.search(name):
+            name = None  # «Популярное» — витрина, а не раздел; его именем раздел не называем
         if cid not in self.categories:
             style = self.styles.get(cid, {})
             self.categories[cid] = {
                 'id': cid,
-                'name': tidy_name(name) or style.get('name', cid),
+                'name': name or style.get('name', cid),
                 'icon': style.get('emoji'),
                 'order': len(self.categories) + 1,
             }
+        elif name and cid not in self.named:
+            self.categories[cid]['name'] = name  # раньше было стандартное имя — берём настоящее с фото
+        if name:
+            self.named.add(cid)
         return cid
 
     def add(self, data, source):
@@ -276,9 +316,10 @@ class MenuBuilder:
         name = tidy_name(raw['name'])
         cid = self.add_category(raw.get('category_id'), names.get(self.category_id(raw.get('category_id'))))
 
-        if (cid, name.lower()) in self.seen:
-            return False  # уже есть с другого фото
-        self.seen.add((cid, name.lower()))
+        key = re.sub(r'\s+', ' ', name.lower().replace('ё', 'е'))
+        if key in self.seen:
+            return False  # уже есть: с другого фото, из перекрытия фрагментов или из блока «Популярное»
+        self.seen.add(key)
 
         variants = []
         for v in raw.get('variants') or []:
@@ -327,6 +368,18 @@ class MenuBuilder:
         return {'categories': categories, 'modifier_groups': list(self.groups.values()), 'items': self.items}
 
 
+def last_section_name(data):
+    """Название раздела, которым заканчивается ответ модели по фрагменту, — подсказка для следующего."""
+    if not isinstance(data, dict):
+        return None
+    names = {c.get('id'): c.get('name') for c in data.get('categories') or [] if isinstance(c, dict)}
+    items = [i for i in data.get('items') or [] if isinstance(i, dict)]
+    if items and names.get(items[-1].get('category_id')):
+        return text_or_null(names[items[-1]['category_id']])
+    cats = [c for c in data.get('categories') or [] if isinstance(c, dict)]
+    return text_or_null(cats[-1].get('name')) if cats else None
+
+
 # ───────── публикация на сайт (--publish)
 
 def notice(level, text):
@@ -373,7 +426,8 @@ def main():
     parser.add_argument('photos', nargs='?', default='photos', help='папка с фото меню (по умолчанию photos)')
     parser.add_argument('--cafe-id', help='id кофейни латиницей, например ayu_menu (по умолчанию — имя папки)')
     parser.add_argument('--out', help='куда сохранить JSON (по умолчанию output/<cafe-id>.json)')
-    parser.add_argument('--max-side', type=int, default=2000, help='уменьшать фото до этой стороны, px')
+    parser.add_argument('--max-width', type=int, default=1600,
+                        help='ширина, до которой уменьшается фото, px (длинные фото режутся на фрагменты по высоте)')
     parser.add_argument('--publish', action='store_true',
                         help='сразу на сайт: coffee-menu/cafes/<id>.json + регистрация в coffee-menu/data/cafes.json')
     args = parser.parse_args()
@@ -417,15 +471,24 @@ def main():
     builder = MenuBuilder(cafe_id, styles)
     failed = []
     for n, photo in enumerate(photos, 1):
-        print(f'[{n}/{len(photos)}] {photo.name}')
-        try:
-            data, text = ask_model(client, model, prompt, image_to_data_url(photo, args.max_side))
-        except Exception as e:
-            print(f'    ✗ не распознано: {e}')
-            failed.append(photo.name)
-            continue
-        (raw_dir / f'{photo.stem}.json').write_text(text, encoding='utf-8')  # сырой ответ — для проверки
-        print(f'    ✓ позиций: {builder.add(data, photo.name)}')
+        tiles = image_tiles(photo, args.max_width)
+        print(f'[{n}/{len(photos)}] {photo.name}' + (f' — {len(tiles)} фрагм.' if len(tiles) > 1 else ''))
+        last_section = None  # раздел, которым закончился предыдущий фрагмент
+        for k, tile in enumerate(tiles, 1):
+            label = f'{photo.name} [{k}/{len(tiles)}]' if len(tiles) > 1 else photo.name
+            context = (f'\n\nЭто фрагмент {k} из {len(tiles)} одного длинного меню. На предыдущем фрагменте последним '
+                       f'был раздел «{last_section}» — позиции в начале этого фрагмента до первого заголовка относятся к нему.'
+                       if k > 1 and last_section else '')
+            try:
+                data, text = ask_model(client, model, prompt + context, tile)
+            except Exception as e:
+                print(f'    ✗ {label}: не распознано: {e}')
+                failed.append(label)
+                continue
+            suffix = f'_{k:02d}' if len(tiles) > 1 else ''
+            (raw_dir / f'{photo.stem}{suffix}.json').write_text(text, encoding='utf-8')  # сырой ответ — для проверки
+            print(f'    ✓ {label}: новых позиций {builder.add(data, label)}')
+            last_section = last_section_name(data) or last_section
 
     menu = builder.result()
     if not menu['items']:

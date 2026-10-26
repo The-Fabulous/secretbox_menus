@@ -1,0 +1,12 @@
+{
+  "id": "zerno",
+  "name": "Зерно (демо)",
+  "logo": null,
+  "address": "ул. Панфилова, 98",
+  "city": "Алматы",
+  "hours": "до 22:00",
+  "currency": "KZT",
+  "theme": {
+    "accent": null
+  }
+}

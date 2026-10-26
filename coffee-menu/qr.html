@@ -83,6 +83,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script src="api.js"></script>
   <script>
     (async () => {
       'use strict';
@@ -90,8 +91,7 @@
       const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
       const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ESC[ch]);
 
-      const registry = await (await fetch('data/cafes.json', { cache: 'no-cache' })).json();
-      const cafes = registry.cafes || [];
+      const { cafes } = await API.getCafes();
       $('#cafe').innerHTML = cafes.map(c => `<option value="${esc(c.id)}">${esc(c.name || c.id)}</option>`).join('');
 
       // по умолчанию — адрес, откуда открыта эта страница

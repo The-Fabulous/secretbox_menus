@@ -8,7 +8,7 @@ const API = (() => {
 
   const ENDPOINTS = {
     styles: () => 'data/categories.json',   // будущее: /api/category-styles
-    cafes:  () => 'data/cafes.json',        // будущее: /api/cafes
+    cafes:  () => 'tabs/index.json',        // список папок вкладок
     tags:   () => 'data/tags.json',         // будущее: /api/tags
     menu:   cafe => cafe.file,              // будущее: `/api/cafes/${cafe.id}/menu`
   };
@@ -93,7 +93,12 @@ const API = (() => {
   async function getCafes() {
     const raw = (await getJSON(ENDPOINTS.cafes())) || {};
     const brand = raw.brand || {};
-    const cafes = (Array.isArray(raw.cafes) ? raw.cafes : [])
+    const entries = await Promise.all((Array.isArray(raw.tabs) ? raw.tabs : []).map(async folder => {
+      const base = `tabs/${encodeURIComponent(folder)}/`;
+      const c = await getJSON(`${base}cafe.json`);
+      return c && { ...c, file: `${base}menu.json`, logo: assetURL(c.logo, `${base}cafe.json`) };
+    }));
+    const cafes = entries
       .filter(c => c && c.id && c.file)
       .map(c => ({
         id: String(c.id),
@@ -108,6 +113,11 @@ const API = (() => {
         accent: c.theme && /^#[0-9a-f]{6}$/i.test(c.theme.accent) ? c.theme.accent : null,
       }));
     return { brand: { name: str(brand.name) || 'Меню', logo: str(brand.logo) }, cafes };
+  }
+
+  // Пути внутри вкладки относительны её JSON: папку можно переносить целиком.
+  function assetURL(path, jsonFile) {
+    return present(path) ? new URL(String(path), new URL(jsonFile, document.baseURI)).href : null;
   }
 
   // ───────── метки позиций (Хит, Новинка, Веган…). Файла нет — меток нет, сайт работает и без них
@@ -255,6 +265,7 @@ const API = (() => {
     const items = (Array.isArray(raw.items) ? raw.items : [])
       .map((it, i) => normalizeItem(it, i, cats, styles, usedIds))
       .filter(Boolean);
+    items.forEach(item => { item.image = assetURL(item.image, cafe.file); });
 
     const groups = normalizeModifierGroups(raw.modifier_groups);
     items.forEach(item => {

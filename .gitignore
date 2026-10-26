@@ -8,3 +8,5 @@ __pycache__/
 
 # Промежуточные ответы модели при распознавании меню
 menu_parser/output/raw/
+coffee-menu/tabs/*/raw/
+menu_parser/output/tabs/

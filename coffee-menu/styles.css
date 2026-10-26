@@ -7,7 +7,7 @@
   --text-2: #4a3a2e;
   --muted: #8b7b6e;
   --line: #eadfd3;
-  /* фирменный цвет: кофейня может задать свой (theme.accent в data/cafes.json), остальные оттенки считаются от него */
+  /* фирменный цвет: кофейня может задать свой (theme.accent в tabs/<id>/cafe.json), остальные оттенки считаются от него */
   --accent: #b5622b;
   --on-accent: #fff;
   --accent-dark: color-mix(in srgb, var(--accent) 78%, #000);

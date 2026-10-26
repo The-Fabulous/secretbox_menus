@@ -1,0 +1,12 @@
+{
+  "id": "ayu_menu",
+  "name": "AYU coffee",
+  "logo": "logo.png",
+  "address": null,
+  "city": null,
+  "hours": null,
+  "currency": "KZT",
+  "theme": {
+    "accent": "#8a5230"
+  }
+}

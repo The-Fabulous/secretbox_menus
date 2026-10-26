@@ -1,0 +1,14 @@
+{
+  "tabs": [
+    "ayu_menu",
+    "zerno",
+    "test",
+    "test1",
+    "dodo_pizza",
+    "master_coffee"
+  ],
+  "brand": {
+    "name": "Secretbox",
+    "logo": "pictures/logos/logo_Secretbox.png"
+  }
+}

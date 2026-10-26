@@ -11,14 +11,17 @@
 
 | Файл | Что внутри | Будущая таблица в БД |
 |---|---|---|
-| `data/cafes.json` | бренд Secretbox и список кофеен: название, логотип, адрес, валюта, файл меню | `cafes` |
-| `cafes/<id>.json` | разделы и позиции меню кофейни (шаблон — `master_coffe.json`) | `categories`, `items`, `variants` |
+| `tabs/index.json` | бренд Secretbox и список папок вкладок | — |
+| `tabs/<id>/cafe.json` | название, логотип, адрес, валюта и оформление заведения | `cafes` |
+| `tabs/<id>/menu.json` | разделы и позиции меню заведения | `categories`, `items`, `variants` |
 | `data/categories.json` | общие настройки разделов: цвет карточек, что к чему рекомендовать, время по умолчанию | `category_styles` |
 | `data/tags.json` | метки позиций: Хит, Новинка, Острое, Веган… (по ним работает фильтр) | `tags` |
 | `qr.html` | страница печати QR-кодов для столов | — |
 | `data/menu.schema.json` | описание формата меню (подсказки и проверка в VS Code) | — |
-| `pictures/logos/` | логотипы | — |
-| `pictures/items/<id кофейни>/` | фото позиций | — |
+| `tabs/<id>/logo.*` | логотип заведения | — |
+| `tabs/<id>/images/` | фото позиций этого заведения | — |
+
+Одна папка в `tabs/` — одна целая вкладка заведения. Её данные и изображения хранятся вместе, общий код интерфейса используется всеми вкладками. Драйвер сам создаёт такую папку и регистрирует её в `tabs/index.json`.
 
 Кофейня открывается по адресу `?cafe=<id>`. Без параметра — начальный экран Secretbox со списком кофеен.
 `?cafe=<id>&table=5` — меню для стола 5: в шапке «Стол 5», в заказе сразу «В зале · стол 5».
@@ -32,12 +35,12 @@
 У каждой позиции уже прописан путь в `image_url`, например:
 
 ```
-pictures/items/master_coffe/item_latte.jpg
+images/item_latte.jpg
 ```
 
-Достаточно положить файл с таким именем в эту папку — фото появится. Пока файла нет, показывается иконка раздела.
+Путь считается от `menu.json` внутри вкладки. Положите фото в `tabs/<id>/images/` — оно появится. Пока файла нет, показывается иконка раздела.
 
-## Формат меню (`cafes/<id>.json`)
+## Формат меню (`tabs/<id>/menu.json`)
 
 ```json
 {
@@ -49,7 +52,7 @@ pictures/items/master_coffe/item_latte.jpg
       "id": "item_latte",
       "category_id": "coffee",
       "name": "Латте",
-      "image_url": "pictures/items/master_coffe/item_latte.jpg",
+      "image_url": "images/item_latte.jpg",
       "description": null,
       "ingredients": null,
       "prep_time_min": 5,
@@ -128,20 +131,21 @@ pictures/items/master_coffe/item_latte.jpg
 
 ## Оформление
 
-- Фирменный цвет кофейни — `"theme": { "accent": "#0b6f7a" }` в `data/cafes.json`. Кнопки, выбранные варианты и метки окрашиваются в него; без поля — цвет по умолчанию.
+- Фирменный цвет кофейни — `"theme": { "accent": "#0b6f7a" }` в `tabs/<id>/cafe.json`. Кнопки, выбранные варианты и метки окрашиваются в него; без поля — цвет по умолчанию.
 - Тёмная тема включается сама, если она включена на телефоне или компьютере гостя.
 
 ## Как добавить кофейню
 
-1. Создать `cafes/new_cafe.json` (можно пустым — будет «Меню пока пустое»).
-2. Положить логотип в `pictures/logos/`.
-3. Добавить кофейню в `data/cafes.json`:
+Автоматически: `python menu_parser/driver.py venues/new_cafe` из корня проекта. Или вручную:
+
+1. Создать `tabs/new_cafe/menu.json` (можно пустым — будет «Меню пока пустое»).
+2. Положить логотип в `tabs/new_cafe/logo.png`, фотографии — в `tabs/new_cafe/images/`.
+3. Создать `tabs/new_cafe/cafe.json`:
    ```json
    {
      "id": "new_cafe",
      "name": "New Cafe",
-     "file": "cafes/new_cafe.json",
-     "logo": "pictures/logos/logo_new.png",
+     "logo": "logo.png",
      "address": null,
      "city": null,
      "hours": null,
@@ -149,6 +153,10 @@ pictures/items/master_coffe/item_latte.jpg
      "theme": { "accent": "#0b6f7a" }
    }
    ```
+
+4. Добавить `"new_cafe"` в массив `tabs` файла `tabs/index.json`. Для переноса заведения достаточно его папки и записи в этом списке. Прямые ссылки используют `id` из `cafe.json`.
+
+Без `"source": "photos"` в `cafe.json` вкладка считается ручной: драйвер создаст отдельную копию в `menu_parser/output/tabs/<id>/`. Диагностические ответы модели находятся в `raw/` внутри результата и не публикуются через Git.
 
 ## Переход на базу данных
 

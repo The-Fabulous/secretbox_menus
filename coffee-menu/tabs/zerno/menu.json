@@ -335,7 +335,7 @@
       "id": "item_espresso",
       "category_id": "coffee",
       "name": "Эспрессо",
-      "image_url": "pictures/items/zerno/item_espresso.jpg",
+      "image_url": "images/item_espresso.jpg",
       "description": "Классический эспрессо на смеси бразильской и эфиопской арабики средней обжарки. Ноты молочного шоколада, лесного ореха и лёгкая ягодная кислинка.",
       "ingredients": [
         "Кофе 100% арабика",
@@ -375,7 +375,7 @@
       "id": "item_americano",
       "category_id": "coffee",
       "name": "Американо",
-      "image_url": "pictures/items/zerno/item_americano.jpg",
+      "image_url": "images/item_americano.jpg",
       "description": "Двойной эспрессо, разбавленный горячей водой. Мягкий и чистый вкус — хорошо пьётся как сам по себе, так и с молоком.",
       "ingredients": [
         "Двойной эспрессо",
@@ -423,7 +423,7 @@
       "id": "item_cappuccino",
       "category_id": "coffee",
       "name": "Капучино",
-      "image_url": "pictures/items/zerno/item_cappuccino.jpg",
+      "image_url": "images/item_cappuccino.jpg",
       "description": "Баланс эспрессо и бархатистого молока с плотной микропеной. Самый популярный напиток нашей кофейни — бариста украсит его латте-артом.",
       "ingredients": [
         "Эспрессо",
@@ -475,7 +475,7 @@
       "id": "item_latte",
       "category_id": "coffee",
       "name": "Латте",
-      "image_url": "pictures/items/zerno/item_latte.jpg",
+      "image_url": "images/item_latte.jpg",
       "description": "Эспрессо с большим количеством взбитого молока и тонким слоем пены. Можно добавить сироп: ваниль, карамель, лесной орех.",
       "ingredients": [
         "Эспрессо",
@@ -523,7 +523,7 @@
       "id": "item_raf",
       "category_id": "coffee",
       "name": "Раф ванильный",
-      "image_url": "pictures/items/zerno/item_raf.jpg",
+      "image_url": "images/item_raf.jpg",
       "description": "Эспрессо, взбитый вместе со сливками и ванильным сахаром. Нежная, почти десертная текстура и тёплый ванильный аромат.",
       "ingredients": [
         "Эспрессо",
@@ -572,7 +572,7 @@
       "id": "item_flatwhite",
       "category_id": "coffee",
       "name": "Флэт уайт",
-      "image_url": "pictures/items/zerno/item_flatwhite.jpg",
+      "image_url": "images/item_flatwhite.jpg",
       "description": "Больше кофе, меньше молока. Двойной ристретто и тонкий слой глянцевого молока — для тех, кто любит выраженный кофейный вкус.",
       "ingredients": [
         "Двойной ристретто",
@@ -609,7 +609,7 @@
       "id": "item_mocha",
       "category_id": "coffee",
       "name": "Моккачино",
-      "image_url": "pictures/items/zerno/item_mocha.jpg",
+      "image_url": "images/item_mocha.jpg",
       "description": "Эспрессо с бельгийским шоколадом и горячим молоком, сверху — шапка взбитых сливок и какао. Согревает лучше любого пледа.",
       "ingredients": [
         "Эспрессо",
@@ -660,7 +660,7 @@
       "id": "item_thyme",
       "category_id": "tea",
       "name": "Чёрный чай с чабрецом",
-      "image_url": "pictures/items/zerno/item_thyme.jpg",
+      "image_url": "images/item_thyme.jpg",
       "description": "Крупнолистовой цейлонский чай с чабрецом. Подаём в чайнике с лимоном и сахаром по желанию.",
       "ingredients": [
         "Чёрный чай (Цейлон)",
@@ -701,7 +701,7 @@
       "id": "item_sencha",
       "category_id": "tea",
       "name": "Зелёная сенча",
-      "image_url": "pictures/items/zerno/item_sencha.jpg",
+      "image_url": "images/item_sencha.jpg",
       "description": "Свежий травянистый вкус с ноткой морского бриза. Завариваем при 80 °C, чтобы чай не горчил.",
       "ingredients": [
         "Зелёный чай сенча"
@@ -741,7 +741,7 @@
       "id": "item_seabuckthorn",
       "category_id": "tea",
       "name": "Облепиховый чай",
-      "image_url": "pictures/items/zerno/item_seabuckthorn.jpg",
+      "image_url": "images/item_seabuckthorn.jpg",
       "description": "Яркий согревающий чай из протёртой облепихи с апельсином, мёдом, имбирём и палочкой корицы. Витаминный заряд на весь день.",
       "ingredients": [
         "Облепиха",
@@ -785,7 +785,7 @@
       "id": "item_matcha",
       "category_id": "tea",
       "name": "Матча латте",
-      "image_url": "pictures/items/zerno/item_matcha.jpg",
+      "image_url": "images/item_matcha.jpg",
       "description": "Церемониальная матча, взбитая венчиком и смешанная с молоком. Можно заменить молоко на овсяное или кокосовое.",
       "ingredients": [
         "Матча",
@@ -838,7 +838,7 @@
       "id": "item_icelatte",
       "category_id": "cold_drinks",
       "name": "Айс латте",
-      "image_url": "pictures/items/zerno/item_icelatte.jpg",
+      "image_url": "images/item_icelatte.jpg",
       "description": "Освежающий латте со льдом. Хорош с карамельным или кокосовым сиропом.",
       "ingredients": [
         "Эспрессо",
@@ -881,7 +881,7 @@
       "id": "item_lemonade",
       "category_id": "cold_drinks",
       "name": "Лимонад маракуйя-манго",
-      "image_url": "pictures/items/zerno/item_lemonade.jpg",
+      "image_url": "images/item_lemonade.jpg",
       "description": "Пюре маракуйи и манго, лайм, мята и газированная вода. Не слишком сладкий — именно такой, каким должен быть лимонад.",
       "ingredients": [
         "Пюре маракуйи",
@@ -926,7 +926,7 @@
       "id": "item_frappe",
       "category_id": "cold_drinks",
       "name": "Фраппе карамельный",
-      "image_url": "pictures/items/zerno/item_frappe.jpg",
+      "image_url": "images/item_frappe.jpg",
       "description": "Эспрессо, молоко, карамель и лёд, взбитые в блендере до состояния нежного снега. Сверху — сливки и солёная карамель.",
       "ingredients": [
         "Эспрессо",
@@ -955,7 +955,7 @@
       "id": "item_fresh",
       "category_id": "cold_drinks",
       "name": "Фреш апельсиновый",
-      "image_url": "pictures/items/zerno/item_fresh.jpg",
+      "image_url": "images/item_fresh.jpg",
       "description": "Выжимаем при вас из спелых апельсинов. Без сахара и воды — только сок.",
       "ingredients": [
         "Апельсины"
@@ -995,7 +995,7 @@
       "id": "item_syrniki",
       "category_id": "breakfast",
       "name": "Сырники со сметаной",
-      "image_url": "pictures/items/zerno/item_syrniki.jpg",
+      "image_url": "images/item_syrniki.jpg",
       "description": "Сырники из домашнего творога 9%, обжаренные до золотистой корочки. Подаём со сметаной, ягодным соусом и свежими ягодами.",
       "ingredients": [
         "Творог 9%",
@@ -1029,7 +1029,7 @@
       "id": "item_omelette",
       "category_id": "breakfast",
       "name": "Омлет с сыром и томатами",
-      "image_url": "pictures/items/zerno/item_omelette.jpg",
+      "image_url": "images/item_omelette.jpg",
       "description": "Нежный омлет из трёх яиц с моцареллой и томатами черри. Подаём с хрустящим тостом и зеленью.",
       "ingredients": [
         "Яйцо",
@@ -1059,7 +1059,7 @@
       "id": "item_avotoast",
       "category_id": "breakfast",
       "name": "Тост с авокадо и пашот",
-      "image_url": "pictures/items/zerno/item_avotoast.jpg",
+      "image_url": "images/item_avotoast.jpg",
       "description": "Хрустящий цельнозерновой тост, гуакамоле, яйцо пашот, редис и микрозелень. Сбалансированный завтрак, после которого не тянет в сон.",
       "ingredients": [
         "Цельнозерновой хлеб",
@@ -1094,7 +1094,7 @@
       "id": "item_oatmeal",
       "category_id": "breakfast",
       "name": "Овсянка с ягодами",
-      "image_url": "pictures/items/zerno/item_oatmeal.jpg",
+      "image_url": "images/item_oatmeal.jpg",
       "description": "Овсяная каша на молоке с ягодами, бананом, мёдом и грецкими орехами. Можно приготовить на воде или растительном молоке.",
       "ingredients": [
         "Овсяные хлопья",
@@ -1124,7 +1124,7 @@
       "id": "item_lagman",
       "category_id": "hot_meals",
       "name": "Лагман",
-      "image_url": "pictures/items/zerno/item_lagman.jpg",
+      "image_url": "images/item_lagman.jpg",
       "description": "Домашняя тянутая лапша с говядиной, болгарским перцем, редькой и стручковой фасолью в густом ароматном соусе. Порция, после которой хочется жить.",
       "ingredients": [
         "Лапша ручной работы",
@@ -1159,7 +1159,7 @@
       "id": "item_carbonara",
       "category_id": "hot_meals",
       "name": "Паста карбонара",
-      "image_url": "pictures/items/zerno/item_carbonara.jpg",
+      "image_url": "images/item_carbonara.jpg",
       "description": "Спагетти в сливочном соусе на желтке с беконом и пармезаном, щедро присыпанные свежемолотым чёрным перцем.",
       "ingredients": [
         "Спагетти",
@@ -1189,7 +1189,7 @@
       "id": "item_teriyaki",
       "category_id": "hot_meals",
       "name": "Курица терияки с рисом",
-      "image_url": "pictures/items/zerno/item_teriyaki.jpg",
+      "image_url": "images/item_teriyaki.jpg",
       "description": "Сочное куриное бедро в глазури терияки, рис жасмин, брокколи и морковь на пару. Посыпаем кунжутом и зелёным луком.",
       "ingredients": [
         "Куриное бедро",
@@ -1220,7 +1220,7 @@
       "id": "item_pumpkin",
       "category_id": "hot_meals",
       "name": "Тыквенный крем-суп",
-      "image_url": "pictures/items/zerno/item_pumpkin.jpg",
+      "image_url": "images/item_pumpkin.jpg",
       "description": "Запечённая тыква, сливки и немного имбиря. Подаём с тыквенными семечками и гренками.",
       "ingredients": [
         "Тыква",
@@ -1253,7 +1253,7 @@
       "id": "item_burger",
       "category_id": "hot_meals",
       "name": "Бургер с говядиной",
-      "image_url": "pictures/items/zerno/item_burger.jpg",
+      "image_url": "images/item_burger.jpg",
       "description": "Сочная котлета из мраморной говядины, чеддер, маринованный огурец, томат, салат и фирменный соус в булочке бриошь.",
       "ingredients": [
         "Булочка бриошь",
@@ -1287,7 +1287,7 @@
       "id": "item_club",
       "category_id": "snacks",
       "name": "Клаб-сэндвич",
-      "image_url": "pictures/items/zerno/item_club.jpg",
+      "image_url": "images/item_club.jpg",
       "description": "Трёхслойный сэндвич на поджаренном тосте с курицей, беконом, яйцом, томатом и салатом. Подаём с картофельными чипсами.",
       "ingredients": [
         "Тостовый хлеб",
@@ -1318,7 +1318,7 @@
       "id": "item_fries",
       "category_id": "snacks",
       "name": "Картофель фри",
-      "image_url": "pictures/items/zerno/item_fries.jpg",
+      "image_url": "images/item_fries.jpg",
       "description": "Золотистый картофель фри с морской солью. Соус на выбор: сырный, кетчуп или чесночный.",
       "ingredients": [
         "Картофель",
@@ -1346,7 +1346,7 @@
       "id": "item_caesarroll",
       "category_id": "snacks",
       "name": "Ролл «Цезарь»",
-      "image_url": "pictures/items/zerno/item_caesarroll.jpg",
+      "image_url": "images/item_caesarroll.jpg",
       "description": "Всё, за что любят салат «Цезарь», в удобной тортилье: курица гриль, романо, томаты, пармезан и соус цезарь.",
       "ingredients": [
         "Пшеничная тортилья",
@@ -1376,7 +1376,7 @@
       "id": "item_bruschetta",
       "category_id": "snacks",
       "name": "Брускетты с томатами",
-      "image_url": "pictures/items/zerno/item_bruschetta.jpg",
+      "image_url": "images/item_bruschetta.jpg",
       "description": "Чиабатта на гриле, натёртая чесноком, с томатами, базиликом, оливковым маслом и бальзамическим кремом.",
       "ingredients": [
         "Чиабатта",
@@ -1409,7 +1409,7 @@
       "id": "item_cheesecake",
       "category_id": "desserts",
       "name": "Чизкейк Нью-Йорк",
-      "image_url": "pictures/items/zerno/item_cheesecake.jpg",
+      "image_url": "images/item_cheesecake.jpg",
       "description": "Плотный и сливочный чизкейк на песочной основе, запечённый на водяной бане. Подаём с ягодным соусом.",
       "ingredients": [
         "Сливочный сыр",
@@ -1444,7 +1444,7 @@
       "id": "item_medovik",
       "category_id": "desserts",
       "name": "Медовик",
-      "image_url": "pictures/items/zerno/item_medovik.jpg",
+      "image_url": "images/item_medovik.jpg",
       "description": "Тонкие медовые коржи, пропитанные нежным сметанным кремом. Печём сами по бабушкиному рецепту.",
       "ingredients": [
         "Мука",
@@ -1474,7 +1474,7 @@
       "id": "item_pannacotta",
       "category_id": "desserts",
       "name": "Панна-котта с маракуйей",
-      "image_url": "pictures/items/zerno/item_pannacotta.jpg",
+      "image_url": "images/item_pannacotta.jpg",
       "description": "Нежная ванильная панна-котта на сливках с кисло-сладким соусом из маракуйи.",
       "ingredients": [
         "Сливки 33%",
@@ -1503,7 +1503,7 @@
       "id": "item_brownie",
       "category_id": "desserts",
       "name": "Брауни с мороженым",
-      "image_url": "pictures/items/zerno/item_brownie.jpg",
+      "image_url": "images/item_brownie.jpg",
       "description": "Влажный шоколадный брауни с грецким орехом, подаётся тёплым с шариком пломбира и шоколадным соусом.",
       "ingredients": [
         "Тёмный шоколад",
@@ -1533,7 +1533,7 @@
       "id": "item_icecream",
       "category_id": "desserts",
       "name": "Мороженое пломбир",
-      "image_url": "pictures/items/zerno/item_icecream.jpg",
+      "image_url": "images/item_icecream.jpg",
       "description": "Сливочный пломбир — два шарика. Топпинг на выбор: карамель, шоколад или ягоды.",
       "ingredients": [
         "Пломбир 15%",
@@ -1559,7 +1559,7 @@
       "id": "item_croissant",
       "category_id": "pastry",
       "name": "Круассан",
-      "image_url": "pictures/items/zerno/item_croissant.jpg",
+      "image_url": "images/item_croissant.jpg",
       "description": "Хрустящий снаружи и воздушный внутри круассан на французском сливочном масле 82%. Подогреем перед подачей.",
       "ingredients": [
         "Мука",
@@ -1588,7 +1588,7 @@
       "id": "item_almondcroissant",
       "category_id": "pastry",
       "name": "Круассан миндальный",
-      "image_url": "pictures/items/zerno/item_almondcroissant.jpg",
+      "image_url": "images/item_almondcroissant.jpg",
       "description": "Круассан с миндальным кремом франжипан внутри, лепестками миндаля и сахарной пудрой сверху.",
       "ingredients": [
         "Слоёное тесто",
@@ -1616,7 +1616,7 @@
       "id": "item_muffin",
       "category_id": "pastry",
       "name": "Маффин черничный",
-      "image_url": "pictures/items/zerno/item_muffin.jpg",
+      "image_url": "images/item_muffin.jpg",
       "description": "Сливочный маффин с целыми ягодами черники и хрустящей штрейзельной крошкой.",
       "ingredients": [
         "Мука",
@@ -1646,7 +1646,7 @@
       "id": "item_donut",
       "category_id": "pastry",
       "name": "Пончик с глазурью",
-      "image_url": "pictures/items/zerno/item_donut.jpg",
+      "image_url": "images/item_donut.jpg",
       "description": "Воздушный дрожжевой пончик с малиновой глазурью и посыпкой.",
       "ingredients": [
         "Мука",
@@ -1675,7 +1675,7 @@
       "id": "item_samsa",
       "category_id": "pastry",
       "name": "Самса с курицей",
-      "image_url": "pictures/items/zerno/item_samsa.jpg",
+      "image_url": "images/item_samsa.jpg",
       "description": "Хрустящая слоёная самса с сочной начинкой из курицы и лука. Выпекаем каждое утро.",
       "ingredients": [
         "Слоёное тесто",
@@ -1704,7 +1704,7 @@
       "id": "item_combo_morning",
       "category_id": "combo",
       "name": "Комбо «Доброе утро»",
-      "image_url": "pictures/items/zerno/item_combo_morning.jpg",
+      "image_url": "images/item_combo_morning.jpg",
       "description": "Наш самый любимый завтрак по специальной цене: капучино 350 мл и три сырника со сметаной и ягодами. Действует весь день.",
       "ingredients": [
         "Капучино 350 мл",

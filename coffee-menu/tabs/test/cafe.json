@@ -1,0 +1,12 @@
+{
+  "id": "test",
+  "name": null,
+  "logo": null,
+  "address": null,
+  "city": null,
+  "hours": null,
+  "currency": "KZT",
+  "theme": {
+    "accent": null
+  }
+}

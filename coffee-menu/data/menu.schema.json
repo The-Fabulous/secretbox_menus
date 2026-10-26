@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Меню кофейни (шаблон master_coffe.json)",
+  "title": "Меню вкладки (tabs/<id>/menu.json)",
   "description": "Если данных нет — пишите null: на сайте такой блок не показывается.",
   "type": "object",
   "properties": {
@@ -57,7 +57,7 @@
           "id":            { "type": "string", "description": "Постоянный идентификатор позиции" },
           "category_id":   { "type": "string" },
           "name":          { "type": "string" },
-          "image_url":     { "type": ["string", "null"], "description": "Путь к фото, например pictures/items/master_coffe/item_latte.jpg. Пока файла нет — показывается иконка раздела" },
+          "image_url":     { "type": ["string", "null"], "description": "Путь относительно menu.json, например images/item_latte.jpg. Пока файла нет — показывается иконка раздела" },
           "description":   { "type": ["string", "null"] },
           "ingredients":   { "type": ["array", "null"], "items": { "type": "string" } },
           "prep_time_min": { "type": ["number", "null"], "description": "Время приготовления, мин" },

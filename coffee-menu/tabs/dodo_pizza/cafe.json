@@ -1,0 +1,13 @@
+{
+  "id": "dodo_pizza",
+  "name": "Dodo Pizza",
+  "logo": null,
+  "address": null,
+  "city": null,
+  "hours": null,
+  "currency": "KZT",
+  "theme": {
+    "accent": null
+  },
+  "source": "photos"
+}

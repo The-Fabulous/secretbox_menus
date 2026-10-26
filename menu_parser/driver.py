@@ -1,14 +1,14 @@
-"""Распознаёт фото меню кофейни через Gemma и собирает JSON для сайта.
+"""Распознаёт фото меню через Gemma и собирает целую вкладку в tabs/<id>/.
 
-Формат результата — как coffee-menu/cafes/master_coffe.json (пустой шаблон — etalon.json).
+Папка результата: cafe.json, menu.json, images/, logo.*, raw/ (ответы для проверки).
 Каждое фото отправляется в модель отдельно, позиции со всех фото объединяются в одно меню,
 а ответ модели проверяется и приводится к формату сайта: цены — числами, неизвестное — null,
-id — латиницей, пути к фото — pictures/items/<кофейня>/<id>.jpg.
+id — латиницей, пути к фото — images/<id>.jpg относительно menu.json.
 
 Запуск (из папки menu_parser):
   pip install -r requirements.txt
   python driver.py ../venues/ayu_menu
-  python driver.py ../venues/ayu_menu --out ../coffee-menu/cafes/ayu_menu.json
+  python driver.py ../venues/ayu_menu --out output/tabs/ayu_menu
 
 Ключ API — в файле .env рядом со скриптом (OPENAI_API_KEY=...).
 """
@@ -20,6 +20,7 @@ import json
 import mimetypes
 import os
 import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -44,7 +45,7 @@ def load_env(path):
 
 def load_json(path, fallback=None):
     try:
-        return json.loads(path.read_text(encoding='utf-8'))
+        return json.loads(path.read_text(encoding='utf-8-sig'))
     except (OSError, json.JSONDecodeError):
         return fallback
 
@@ -502,7 +503,7 @@ def last_section_name(data):
     return text_or_null(cats[-1].get('name')) if cats else None
 
 
-# ───────── публикация на сайт (--publish)
+# ───────── целая вкладка: сведения, меню, фотографии, ответы модели
 
 def notice(level, text):
     """Сообщение в лог; в GitHub Actions — ещё и аннотация на странице задачи."""
@@ -516,44 +517,74 @@ def cafe_info(photos_dir, cafe_id):
     return {k: text_or_null(info.get(k)) for k in ('address', 'city', 'hours', 'logo')} | {'name': name}
 
 
-def publish(menu, cafe_id, info):
-    """Пишет меню в coffee-menu/cafes и регистрирует кофейню в coffee-menu/data/cafes.json.
-    Меню, сделанные вручную (без "source": "photos"), не перезаписываются. Возвращает путь к файлу."""
-    reg_path = SITE / 'data' / 'cafes.json'
-    registry = load_json(reg_path, {}) or {}
-    cafes = registry.setdefault('cafes', [])
-    entry = next((c for c in cafes if c.get('id') == cafe_id), None)
+def write_json(path, value):
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
 
-    if entry and entry.get('source') != 'photos':
-        out = HERE / 'output' / f'{cafe_id}.json'
-        notice('warning', f'Кофейня «{cafe_id}» сделана вручную — её меню на сайте не перезаписано. '
-                          f'Результат распознавания: menu_parser/output/{cafe_id}.json')
-        return out
 
-    if entry is None:
-        entry = {'id': cafe_id, 'name': info['name'], 'file': f'cafes/{cafe_id}.json', 'logo': info['logo'],
-                 'address': info['address'], 'city': info['city'], 'hours': info['hours'],
-                 'currency': 'KZT', 'theme': {'accent': None}, 'source': 'photos'}
-        cafes.append(entry)
-    else:  # обновляем то, что указано в cafe.json
-        entry.update({k: v for k, v in info.items() if v})
-    reg_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
-    return SITE / entry['file']
+def logo_file(photos_dir, info):
+    """Логотип из папки исходников; поддерживаем также прежний путь от корня сайта."""
+    if not info.get('logo'):
+        return None
+    for path in (photos_dir / info['logo'], SITE / info['logo']):
+        if path.is_file():
+            return path.resolve()
+    raise ValueError(f'Логотип не найден: {info["logo"]}')
+
+
+def write_tab(folder, cafe_id, info, menu, crops, raw_answers, logo=None):
+    """Все файлы заведения в одной папке. Индекс обновляется после записи вкладки."""
+    folder = folder.resolve()
+    on_site = folder.parent == (SITE / 'tabs').resolve()
+    previous = load_json(folder / 'cafe.json', {}) or {}
+    if on_site and (folder / 'menu.json').exists() and previous.get('source') != 'photos':
+        raise ValueError(f'Вкладка «{cafe_id}» создана вручную; используйте --out для отдельной копии')
+    folder.mkdir(parents=True, exist_ok=True)
+    entry = {'id': cafe_id, 'currency': 'KZT', 'theme': {'accent': None}, **previous,
+             **{k: v for k, v in info.items() if v is not None and k != 'logo'}, 'source': 'photos'}
+    entry.setdefault('logo', None)
+    for key in ('address', 'city', 'hours'):
+        entry.setdefault(key, None)
+    if logo:
+        entry['logo'] = f'logo{logo.suffix.lower()}'
+        target = folder / entry['logo']
+        if logo.resolve() != target.resolve():
+            shutil.copy2(logo, target)
+    for item in menu['items']:
+        img = crops.get(item['id'])
+        if img is None:
+            continue
+        (folder / 'images').mkdir(exist_ok=True)
+        img.thumbnail((600, 600))
+        item['image_url'] = f'images/{item["id"]}.jpg'
+        img.save(folder / item['image_url'], 'JPEG', quality=85, optimize=True)
+    if raw_answers:
+        (folder / 'raw').mkdir(exist_ok=True)
+        for name, answer in raw_answers.items():
+            (folder / 'raw' / name).write_text(answer, encoding='utf-8')
+    write_json(folder / 'menu.json', menu)
+    write_json(folder / 'cafe.json', entry)
+    if on_site:
+        index_path = SITE / 'tabs' / 'index.json'
+        index = load_json(index_path, {}) or {}
+        folders = index.setdefault('tabs', [])
+        if folder.name not in folders:
+            folders.append(folder.name)
+        write_json(index_path, index)
 
 
 # ───────── запуск
 
 def main():
-    parser = argparse.ArgumentParser(description='Фото меню → JSON для сайта (через Gemma)')
+    parser = argparse.ArgumentParser(description='Фото меню → целая вкладка в coffee-menu/tabs/<id>/')
     parser.add_argument('photos', help='папка заведения с cafe.json и скриншотами, например venues/dodo_pizza')
     parser.add_argument('--cafe-id', help='id кофейни латиницей, например ayu_menu (по умолчанию — имя папки)')
-    parser.add_argument('--out', help='куда сохранить JSON (по умолчанию output/<cafe-id>.json)')
+    parser.add_argument('--out', help='папка готовой вкладки (по умолчанию coffee-menu/tabs/<id>/)')
     parser.add_argument('--max-width', type=int, default=1600,
                         help='ширина, до которой уменьшается фото, px (длинные фото режутся на фрагменты по высоте)')
     parser.add_argument('--no-photos', dest='photos_from_menu', action='store_false',
                         help='не вырезать фото позиций из меню (быстрее: один запрос к модели на фрагмент)')
     parser.add_argument('--publish', action='store_true',
-                        help='сразу на сайт: coffee-menu/cafes/<id>.json + регистрация в coffee-menu/data/cafes.json')
+                        help='совместимость со старым запуском: теперь вкладка по умолчанию сохраняется на сайт')
     args = parser.parse_args()
 
     load_env(HERE / '.env')
@@ -566,14 +597,28 @@ def main():
     photos_dir = Path(args.photos)
     if not photos_dir.is_absolute():
         photos_dir = (Path.cwd() / photos_dir) if (Path.cwd() / photos_dir).exists() else HERE / photos_dir
-    photos = sorted(p for p in photos_dir.glob('*') if p.suffix.lower() in IMAGE_EXT)
+    cafe_id = slug(args.cafe_id or photos_dir.name)
+    if not cafe_id:
+        parser.error('Не удалось получить id заведения; задайте --cafe-id латиницей')
+    info = cafe_info(photos_dir, cafe_id)
+    try:
+        logo = logo_file(photos_dir, info)
+    except ValueError as e:
+        parser.error(str(e))
+    photos = sorted(p for p in photos_dir.glob('*') if p.is_file() and p.suffix.lower() in IMAGE_EXT
+                    and p.resolve() != logo)
     if not photos:
         sys.exit(f'В папке {photos_dir} нет фото ({", ".join(sorted(IMAGE_EXT))})')
 
-    cafe_id = slug(args.cafe_id or (photos_dir.name if photos_dir.name != 'photos' else 'new_cafe'))
-    out = Path(args.out) if args.out else HERE / 'output' / f'{cafe_id}.json'
-    raw_dir = HERE / 'output' / 'raw' / cafe_id
-    raw_dir.mkdir(parents=True, exist_ok=True)
+    out = Path(args.out).resolve() if args.out else SITE / 'tabs' / cafe_id
+    if out.suffix.lower() == '.json':
+        parser.error('--out теперь принимает папку вкладки, например output/tabs/my_cafe')
+    if out.parent.resolve() == (SITE / 'tabs').resolve():
+        previous = load_json(out / 'cafe.json', {}) or {}
+        if (out / 'menu.json').exists() and previous.get('source') != 'photos':
+            out = HERE / 'output' / 'tabs' / cafe_id
+            notice('warning', f'Ручное меню сохранено. Новая вкладка будет записана отдельно: {out}')
+    raw_answers = {}
 
     try:
         from openai import OpenAI
@@ -583,7 +628,7 @@ def main():
 
     etalon = load_json(HERE / 'etalon.json')
     styles = (load_json(SITE / 'data' / 'categories.json', {}) or {}).get('categories', [])
-    sample = load_json(SITE / 'cafes' / 'master_coffe.json', {}) or {}
+    sample = load_json(SITE / 'tabs' / 'master_coffee' / 'menu.json', {}) or {}
     example = {'categories': sample.get('categories', [])[:1],
                'items': [{k: v for k, v in i.items() if k not in ('i18n', 'modifier_group_ids')}
                          for i in sample.get('items', [])[:2]]}
@@ -611,7 +656,7 @@ def main():
                 failed.append(label)
                 continue
             suffix = f'_{k:02d}' if len(tiles) > 1 else ''
-            (raw_dir / f'{photo.stem}{suffix}.json').write_text(text, encoding='utf-8')  # сырой ответ — для проверки
+            raw_answers[f'{photo.name}{suffix}.json'] = text
             print(f'    ✓ {label}: новых позиций {builder.add(data, label)}')
             last_section = last_section_name(data) or last_section
 
@@ -633,39 +678,22 @@ def main():
         notice('error', f'«{cafe_id}»: не распознано ни одной позиции, меню не изменено')
         sys.exit(1)
 
-    if args.publish and failed:
+    if failed:
         # часть фрагментов не распознана — неполное меню на сайт не пишем, прежнее остаётся
         notice('error', f'«{cafe_id}»: не распознаны {", ".join(failed)} — меню на сайте не изменено. '
                         f'Запустите распознавание ещё раз.')
         sys.exit(1)
-    if args.publish:
-        out = publish(menu, cafe_id, cafe_info(photos_dir, cafe_id))
-
-    # фото — рядом с меню: на сайт (coffee-menu/pictures/items/<кофейня>/) или в output/pictures/<кофейня>/
-    pics_dir = (SITE / 'pictures' / 'items' / cafe_id) if SITE in out.resolve().parents else (HERE / 'output' / 'pictures' / cafe_id)
-    if crops:
-        pics_dir.mkdir(parents=True, exist_ok=True)
-    for item in menu['items']:
-        img = crops.get(item['id'])
-        if img is None:
-            continue
-        img.thumbnail((600, 600))
-        img.save(pics_dir / f'{item["id"]}.jpg', 'JPEG', quality=85, optimize=True)
-        item['image_url'] = f'pictures/items/{cafe_id}/{item["id"]}.jpg'
-
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(menu, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+    write_tab(out, cafe_id, info, menu, crops, raw_answers, logo)
 
     with_icon = sum(1 for i in menu['items'] if not i['image_url'] and i['icon'])
     print(f'\nГотово: {out}')
     print(f'  разделов: {len(menu["categories"])}, позиций: {len(menu["items"])}, групп добавок: {len(menu["modifier_groups"])}')
-    print(f'  фото из меню: {len(crops)} (в {pics_dir}), остальным — эмодзи: {with_icon}')
+    print(f'  фото из меню: {len(crops)} (в {out / "images"}), остальным — эмодзи: {with_icon}')
     for w in builder.warnings:
         notice('warning', w)
     if failed:
         notice('warning', f'не распознаны фото: {", ".join(failed)}')
-    if not args.publish:
-        print('\nПроверьте цены и названия, прежде чем копировать файл в coffee-menu/cafes/.')
+    print('\nПроверьте распознанные цены и названия в menu.json.')
 
 
 if __name__ == '__main__':

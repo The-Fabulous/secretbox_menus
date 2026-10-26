@@ -1,7 +1,7 @@
 {
   "json.schemas": [
     {
-      "fileMatch": ["/coffee-menu/cafes/*.json"],
+      "fileMatch": ["/coffee-menu/tabs/*/menu.json"],
       "url": "./coffee-menu/data/menu.schema.json"
     }
   ]
